@@ -46,7 +46,9 @@ class Command(BaseCommand):
                 username=spec["username"],
                 defaults={"email": spec["email"]},
             )
-            if created or reset:
+            # Set password on first creation, on explicit reset, or if the
+            # account somehow ended up without a usable password hash.
+            if created or reset or not user.has_usable_password():
                 user.set_password(spec["password"])
             user.is_active = True
             user.email = spec["email"]
@@ -55,8 +57,8 @@ class Command(BaseCommand):
             profile, _ = UserProfile.objects.get_or_create(user=user)
             if created or reset or not profile.pin_hash:
                 profile.set_pin(spec["pin"])
-            profile.display_name = spec["display_name"]
-            profile.color = spec["color"]
+            profile.display_name = profile.display_name or spec["display_name"]
+            profile.color = profile.color or spec["color"]
             profile.save()
 
             status = "created" if created else ("reset" if reset else "ok")

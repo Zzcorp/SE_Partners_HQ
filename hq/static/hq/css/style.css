@@ -1486,8 +1486,14 @@ textarea.text-input { resize: vertical; min-height: 4.5rem; line-height: 1.5; }
    Landing page — public vitrine
    ========================================================================== */
 
-.page-landing .shell { max-width: none; padding: 0; }
-.page-landing main.shell { overflow: hidden; }
+.page-landing main.shell {
+  max-width: none;
+  padding: 0;
+  display: block;
+  gap: 0;
+  overflow: visible;
+}
+.page-landing { overflow-x: clip; }
 
 .brand-suffix { letter-spacing: .08em; }
 
