@@ -65,7 +65,7 @@ def login_view(request):
             else:
                 login(request, user)
                 request.session.set_expiry(60 * 60 * 12)  # 12h
-                nxt = request.GET.get("next") or reverse("dashboard")
+                nxt = request.GET.get("next") or (reverse("dashboard") + "?welcome=1")
                 return HttpResponseRedirect(nxt)
 
     return render(request, "hq/login.html", {"error": error})

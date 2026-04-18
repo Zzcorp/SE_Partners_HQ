@@ -9,105 +9,216 @@
 
 {% block content %}
 
-<section class="console-head reveal">
-  <div>
-    <div class="eyebrow mono">— prospecting console —</div>
-    <h1 class="console-title">Launch. Watch. <span class="accent">Map the world.</span></h1>
-  </div>
-  <div class="run-status" id="run-status">
-    <span class="run-state mono" id="run-state">idle</span>
-    <span class="run-sub mono"><span id="log-count">0</span> events</span>
-  </div>
-</section>
+<!-- ========= LAUNCH STRIP (everything in one glance) ========= -->
+<section class="launch-strip reveal">
+  <form id="start-form" class="launch-strip-form" autocomplete="off">
+    <div class="launch-main">
+      <div class="launch-eyebrow mono">— prospecting engine —</div>
+      <h1 class="launch-title">Pick an intensity. <span class="accent">Launch.</span></h1>
 
-<section class="console-grid reveal">
-
-  <aside class="panel panel-launcher">
-    <div class="panel-head">
-      <h2 class="panel-title">Launch</h2>
-      <div class="panel-sub mono">one click · smart defaults</div>
+      <div class="preset-row" role="radiogroup" aria-label="Scraping intensity">
+        <button type="button" class="preset is-active" data-preset="scout" role="radio" aria-checked="true">
+          <span class="preset-title">Scout</span>
+          <span class="preset-sub mono">fast · ~5 min · 4 workers</span>
+        </button>
+        <button type="button" class="preset" data-preset="sweep" role="radio" aria-checked="false">
+          <span class="preset-title">Sweep</span>
+          <span class="preset-sub mono">balanced · ~15 min · 7 workers</span>
+        </button>
+        <button type="button" class="preset" data-preset="deep" role="radio" aria-checked="false">
+          <span class="preset-title">Deep</span>
+          <span class="preset-sub mono">thorough · ~45 min · 11 workers</span>
+        </button>
+        <button type="button" class="preset preset-special" data-preset="sovereign" role="radio" aria-checked="false">
+          <span class="preset-title">Sovereign</span>
+          <span class="preset-sub mono">8-core box · max throughput · 20 workers</span>
+        </button>
+      </div>
     </div>
 
-    <form id="start-form" class="launcher-form">
+    <aside class="launch-side">
+      <label class="field field-wide">
+        <span class="field-label mono">Focus categories <span class="field-hint-inline">(empty = every category)</span></span>
+        <select name="categories" id="f-categories" multiple size="5">
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </label>
 
-      <div class="launcher-row">
-        <label class="field field-wide">
-          <span class="field-label mono">Focus categories <span class="field-hint-inline">(empty = all)</span></span>
-          <select name="categories" id="f-categories" multiple size="5">
-            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-          </select>
-        </label>
-      </div>
-
-      <div class="launcher-presets">
-        <span class="field-label mono">Intensity</span>
-        <div class="preset-row" role="radiogroup">
-          <button type="button" class="preset is-active" data-preset="scout" role="radio" aria-checked="true">
-            <span class="preset-title">Scout</span>
-            <span class="preset-sub mono">fast · 5 min</span>
-          </button>
-          <button type="button" class="preset" data-preset="sweep" role="radio" aria-checked="false">
-            <span class="preset-title">Sweep</span>
-            <span class="preset-sub mono">balanced · 15 min</span>
-          </button>
-          <button type="button" class="preset" data-preset="deep" role="radio" aria-checked="false">
-            <span class="preset-title">Deep</span>
-            <span class="preset-sub mono">thorough · 45 min</span>
-          </button>
-        </div>
-      </div>
-
-      <details class="launcher-advanced">
-        <summary class="mono">Advanced settings</summary>
-        <div class="launcher-row">
-          <label class="field">
-            <span class="field-label mono">Min priority</span>
-            <input type="number" name="min_priority" id="f-min-priority" value="5" min="1" max="10">
-          </label>
-          <label class="field">
-            <span class="field-label mono">Results / query</span>
-            <input type="number" name="max_results_per_query" id="f-max-results" value="10" min="1" max="50">
-          </label>
-          <label class="field">
-            <span class="field-label mono">Recency (m)</span>
-            <input type="number" name="recency_months" id="f-recency" value="12" min="0" max="60">
-          </label>
-        </div>
-        <div class="launcher-row">
-          <label class="field">
-            <span class="field-label mono">Fetch workers</span>
-            <input type="number" name="fetch_workers" id="f-fetch-workers" value="3" min="1" max="12">
-          </label>
-          <label class="field">
-            <span class="field-label mono">Extract workers</span>
-            <input type="number" name="extract_workers" id="f-extract-workers" value="2" min="1" max="8">
-          </label>
-          <label class="field">
-            <span class="field-label mono">Enrich workers</span>
-            <input type="number" name="enrich_workers" id="f-enrich-workers" value="2" min="1" max="8">
-          </label>
-        </div>
-        <div class="toggle-grid">
-          <label class="toggle"><input type="checkbox" id="f-use-llm" checked> <span>LLM enrichment</span></label>
-          <label class="toggle"><input type="checkbox" id="f-team-crawl" checked> <span>Team-page crawl</span></label>
-          <label class="toggle"><input type="checkbox" id="f-email-enrich" checked> <span>Email candidates</span></label>
-          <label class="toggle"><input type="checkbox" id="f-recency-required"> <span>Require recent</span></label>
-          <label class="toggle"><input type="checkbox" id="f-pdf-only"> <span>PDFs only</span></label>
-          <label class="toggle"><input type="checkbox" id="f-platforms-only"> <span>Platforms only</span></label>
-          <label class="toggle"><input type="checkbox" id="f-exclude-platforms"> <span>Exclude platforms</span></label>
-        </div>
-      </details>
-
-      <div class="launcher-actions">
+      <div class="launch-actions">
         <button type="submit" class="btn btn-primary btn-launch" id="btn-start">
           <span class="btn-launch-label">Launch run</span>
           <span class="btn-launch-arrow">→</span>
         </button>
         <button type="button" class="btn btn-ghost" id="btn-stop">Stop</button>
+        <span class="run-state mono" id="run-state">idle</span>
       </div>
-    </form>
-  </aside>
+    </aside>
+  </form>
 
+  <details class="launcher-advanced">
+    <summary class="mono">Advanced tuning</summary>
+    <div class="launcher-row">
+      <label class="field">
+        <span class="field-label mono">Min priority</span>
+        <input type="number" name="min_priority" id="f-min-priority" value="7" min="1" max="10">
+      </label>
+      <label class="field">
+        <span class="field-label mono">Results / query</span>
+        <input type="number" name="max_results_per_query" id="f-max-results" value="6" min="1" max="50">
+      </label>
+      <label class="field">
+        <span class="field-label mono">Recency (m)</span>
+        <input type="number" name="recency_months" id="f-recency" value="12" min="0" max="60">
+      </label>
+      <label class="field">
+        <span class="field-label mono">Fetch workers</span>
+        <input type="number" name="fetch_workers" id="f-fetch-workers" value="2" min="1" max="16">
+      </label>
+      <label class="field">
+        <span class="field-label mono">Extract workers</span>
+        <input type="number" name="extract_workers" id="f-extract-workers" value="1" min="1" max="10">
+      </label>
+      <label class="field">
+        <span class="field-label mono">Enrich workers</span>
+        <input type="number" name="enrich_workers" id="f-enrich-workers" value="1" min="1" max="10">
+      </label>
+    </div>
+    <div class="toggle-grid">
+      <label class="toggle"><input type="checkbox" id="f-use-llm" checked> <span>LLM enrichment</span></label>
+      <label class="toggle"><input type="checkbox" id="f-team-crawl" checked> <span>Team-page crawl</span></label>
+      <label class="toggle"><input type="checkbox" id="f-email-enrich" checked> <span>Email candidates</span></label>
+      <label class="toggle"><input type="checkbox" id="f-recency-required"> <span>Require recent</span></label>
+      <label class="toggle"><input type="checkbox" id="f-pdf-only"> <span>PDFs only</span></label>
+      <label class="toggle"><input type="checkbox" id="f-platforms-only"> <span>Platforms only</span></label>
+      <label class="toggle"><input type="checkbox" id="f-exclude-platforms"> <span>Exclude platforms</span></label>
+    </div>
+  </details>
+</section>
+
+<!-- ========= LIVE STATE : pipeline + progress + narration ========= -->
+<section class="live-state reveal">
+  <div class="panel panel-live">
+    <div class="panel-head panel-head-live">
+      <div>
+        <h2 class="panel-title">Live pipeline</h2>
+        <div class="panel-sub mono">what the engine is doing · right now</div>
+      </div>
+      <div class="throughput mono">
+        <span class="thr-item"><span id="thr-pages">0</span> pages/min</span>
+        <span class="thr-item"><span id="thr-people">0</span> people/min</span>
+        <span class="thr-item"><span id="thr-eta">—</span> ETA</span>
+      </div>
+    </div>
+
+    <!-- Pipeline flow : 4 stages -->
+    <div class="pipeflow">
+      <div class="pipestage" data-stage="search">
+        <div class="pipestage-head">
+          <span class="pipestage-num mono">01</span>
+          <span class="pipestage-label">SEARCH</span>
+        </div>
+        <div class="pipestage-value" id="stage-search">0<span class="pipestage-slash">/</span><span id="stage-search-total">0</span></div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-search-fill" style="--p: 0"></span></div>
+        <div class="pipestage-sub mono">queries ran</div>
+      </div>
+
+      <div class="pipearrow" aria-hidden="true">▸</div>
+
+      <div class="pipestage" data-stage="fetch">
+        <div class="pipestage-head">
+          <span class="pipestage-num mono">02</span>
+          <span class="pipestage-label">FETCH</span>
+        </div>
+        <div class="pipestage-value" id="stage-fetch">0</div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-fetch-fill" style="--p: 0"></span></div>
+        <div class="pipestage-sub mono"><span id="stage-fetch-ok">0</span> ok · <span id="stage-fetch-err">0</span> err</div>
+      </div>
+
+      <div class="pipearrow" aria-hidden="true">▸</div>
+
+      <div class="pipestage" data-stage="extract">
+        <div class="pipestage-head">
+          <span class="pipestage-num mono">03</span>
+          <span class="pipestage-label">EXTRACT</span>
+        </div>
+        <div class="pipestage-value" id="stage-extract">0</div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-extract-fill" style="--p: 0"></span></div>
+        <div class="pipestage-sub mono">people parsed</div>
+      </div>
+
+      <div class="pipearrow" aria-hidden="true">▸</div>
+
+      <div class="pipestage" data-stage="enrich">
+        <div class="pipestage-head">
+          <span class="pipestage-num mono">04</span>
+          <span class="pipestage-label">ENRICH</span>
+        </div>
+        <div class="pipestage-value" id="stage-enrich">0</div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-enrich-fill" style="--p: 0"></span></div>
+        <div class="pipestage-sub mono"><span id="stage-final">0</span> final</div>
+      </div>
+    </div>
+
+    <!-- Overall progress + live narration -->
+    <div class="progress-row">
+      <div class="progress-wrap">
+        <div class="progress-label mono">RUN PROGRESS</div>
+        <div class="progress-bar"><span class="progress-bar-fill" id="progress-fill" style="--p: 0"></span></div>
+        <div class="progress-sub mono"><span id="progress-pct">0</span>% · <span id="progress-done">0</span> of <span id="progress-total">0</span> queries</div>
+      </div>
+
+      <div class="narration" aria-live="polite">
+        <div class="narration-label mono">NOW</div>
+        <div class="narration-text" id="narration">
+          <span class="narr-tag mono">idle</span>
+          <span class="narr-msg">waiting for a run…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coverage tiles -->
+    <div class="coverage-grid">
+      <div class="cov-tile">
+        <div class="cov-label mono">SOURCES</div>
+        <div class="cov-value" id="cov-sources">0</div>
+        <div class="cov-sub mono">unique domains</div>
+      </div>
+      <div class="cov-tile">
+        <div class="cov-label mono">COUNTRIES</div>
+        <div class="cov-value" id="cov-countries">0</div>
+        <div class="cov-sub mono">on the map</div>
+      </div>
+      <div class="cov-tile">
+        <div class="cov-label mono">EMAILS</div>
+        <div class="cov-value" id="cov-emails">0</div>
+        <div class="cov-sub mono">with contact</div>
+      </div>
+      <div class="cov-tile">
+        <div class="cov-label mono">SENIORS+</div>
+        <div class="cov-value" id="cov-seniors">0</div>
+        <div class="cov-sub mono">senior / exec / founder</div>
+      </div>
+      <div class="cov-tile">
+        <div class="cov-label mono">HIGH-VALUE</div>
+        <div class="cov-value accent" id="cov-hv">0</div>
+        <div class="cov-sub mono">LLM ≥ 80</div>
+      </div>
+      <div class="cov-tile">
+        <div class="cov-label mono">LINKEDIN</div>
+        <div class="cov-value" id="cov-linkedin">0</div>
+        <div class="cov-sub mono">profiles resolved</div>
+      </div>
+    </div>
+
+    <!-- Live workers strip -->
+    <div class="workers-strip" id="workers-grid">
+      <div class="worker-placeholder mono">Waiting for run…</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========= WORLD VISION + TERMINAL ========= -->
+<section class="console-grid reveal">
   <div class="panel panel-map">
     <div class="panel-head panel-head-map">
       <div>
@@ -124,46 +235,16 @@
     <div class="map-tooltip" id="map-tooltip" role="tooltip" hidden></div>
   </div>
 
-</section>
-
-<section class="grid-2 reveal">
-
   <div class="panel panel-terminal">
     <div class="panel-head">
       <h2 class="panel-title">Live log</h2>
-      <div class="panel-sub mono"><button type="button" class="link-btn" id="btn-clear-log">clear</button></div>
+      <div class="panel-sub mono"><span id="log-count">0</span> events · <button type="button" class="link-btn" id="btn-clear-log">clear</button></div>
     </div>
     <div class="terminal" id="terminal" aria-live="polite"></div>
   </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <h2 class="panel-title">Live metrics</h2>
-      <div class="panel-sub mono">current pipeline state</div>
-    </div>
-    <div class="live-metrics">
-      <div class="live-metric">
-        <div class="lm-label mono">QUERIES</div>
-        <div class="lm-value"><span id="m-queries">0</span><span class="lm-total"> / <span id="m-queries-total">0</span></span></div>
-      </div>
-      <div class="live-metric">
-        <div class="lm-label mono">PAGES</div>
-        <div class="lm-value"><span id="m-pages">0</span></div>
-        <div class="lm-sub mono"><span id="m-pages-ok">0</span> ok · <span id="m-pages-err">0</span> err</div>
-      </div>
-      <div class="live-metric">
-        <div class="lm-label mono">PEOPLE</div>
-        <div class="lm-value"><span id="m-people">0</span></div>
-        <div class="lm-sub mono"><span id="m-people-unique">0</span> unique · <span id="m-leads-final">0</span> final</div>
-      </div>
-    </div>
-    <div class="workers-strip" id="workers-grid">
-      <div class="worker-placeholder mono">Waiting for run…</div>
-    </div>
-  </div>
-
 </section>
 
+<!-- ========= LEADS + BREAKDOWN ========= -->
 <section class="grid-2 reveal">
   <div class="panel">
     <div class="panel-head">

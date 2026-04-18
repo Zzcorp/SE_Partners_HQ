@@ -5,6 +5,10 @@
 
 {% block content %}
 
+{% if request.GET.welcome %}
+{% include "hq/partials/welcome_overlay.html" with welcome_mode="dashboard" welcome_name=request.user.profile.display_name|default:request.user.username %}
+{% endif %}
+
 <section class="hero reveal dashboard-hero">
   <div class="hero-left">
     <div class="eyebrow mono">— intelligence dashboard —</div>

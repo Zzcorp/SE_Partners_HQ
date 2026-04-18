@@ -1,0 +1,38 @@
+{# Welcome overlay — reused by landing (intro), login (success), dashboard (?welcome=1) #}
+{# data-welcome-mode controls JS behavior: "intro" | "login" | "dashboard" #}
+{# data-welcome-name optional: personalized greeting #}
+<div class="welcome-overlay"
+     id="welcome-overlay"
+     data-welcome-mode="{{ welcome_mode|default:'intro' }}"
+     data-welcome-name="{{ welcome_name|default:'' }}"
+     aria-hidden="true">
+  <div class="welcome-lights" aria-hidden="true">
+    <div class="welcome-orb welcome-orb-1"></div>
+    <div class="welcome-orb welcome-orb-2"></div>
+    <div class="welcome-orb welcome-orb-3"></div>
+    <div class="welcome-orb welcome-orb-4"></div>
+    <div class="welcome-beam welcome-beam-1"></div>
+    <div class="welcome-beam welcome-beam-2"></div>
+    <div class="welcome-noise"></div>
+  </div>
+
+  <div class="welcome-content">
+    <div class="welcome-mark">
+      <span class="welcome-mark-text">S&amp;E</span>
+      <span class="welcome-mark-ring"></span>
+    </div>
+
+    <div class="welcome-eyebrow mono" id="welcome-eyebrow">— sovereign data partners —</div>
+
+    <h1 class="welcome-title">
+      <span class="welcome-line" id="welcome-greeting">Welcome.</span>
+      <span class="welcome-line welcome-line-accent" id="welcome-subtitle">From the sovereign data floor.</span>
+    </h1>
+
+    <div class="welcome-bar-wrap" aria-hidden="true">
+      <div class="welcome-bar"><span class="welcome-bar-fill" id="welcome-bar-fill"></span></div>
+    </div>
+
+    <div class="welcome-hint mono" id="welcome-hint">initializing…</div>
+  </div>
+</div>

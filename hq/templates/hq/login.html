@@ -1,14 +1,15 @@
 {% extends "hq/base.html" %}
+{% load static %}
 {% block title %}Access · The S&amp;E Partners HQ{% endblock %}
 {% block body_class %}page-login{% endblock %}
 
 {% block content %}
-<section class="login-card reveal">
+<section class="login-card reveal" id="login-card">
   <div class="login-eyebrow mono">restricted access</div>
   <h1 class="login-title">The S&amp;E Partners <span class="accent">HQ</span></h1>
   <p class="login-sub">Sovereign prospecting console.<br>Three layers. No drift.</p>
 
-  <form method="post" class="login-form" autocomplete="off" novalidate>
+  <form method="post" class="login-form" id="login-form" autocomplete="off" novalidate>
     {% csrf_token %}
 
     <label class="field">
@@ -56,4 +57,8 @@
 
   <div class="login-foot mono">secure session · 12h expiry</div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'hq/js/login.js' %}" defer></script>
 {% endblock %}
