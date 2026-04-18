@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: se-partners-hq
+    env: python
+    plan: starter
+    region: frankfurt
+    autoDeploy: true
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate --noinput
+    startCommand: daphne -b 0.0.0.0 -p $PORT sehq.asgi:application
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DJANGO_SETTINGS_MODULE
+        value: sehq.settings
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: HQ_PIN
+        sync: false
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: DJANGO_SECURE_COOKIE
+        value: "1"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: claude-opus-4-7
+      - key: SERPAPI_KEY
+        sync: false
+      - key: BRAVE_API_KEY
+        sync: false
+      - key: BING_API_KEY
+        sync: false
