@@ -56,12 +56,24 @@ TEMPLATES = [
 ASGI_APPLICATION = "sehq.asgi.application"
 WSGI_APPLICATION = "sehq.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "hq.sqlite3",
+import dj_database_url
+
+_db_url = os.environ.get("DATABASE_URL")
+if _db_url:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            _db_url,
+            conn_max_age=600,
+            ssl_require=os.environ.get("DATABASE_SSL", "1") == "1",
+        ),
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "hq.sqlite3",
+        }
+    }
 
 # Single-process in-memory channel layer (pas besoin de Redis sur un instance unique).
 # Si tu scales horizontalement sur Render → bascule sur channels_redis.

@@ -789,6 +789,28 @@ select[multiple] option:checked { background: var(--gold-soft); color: var(--gol
   border: 1px solid var(--panel-border);
   background: rgba(0,0,0,0.25);
 }
+.export-cell { white-space: nowrap; }
+.export-btn {
+  display: inline-block;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  margin-right: 6px;
+  border: 1px solid var(--panel-border-hi);
+  border-radius: 6px;
+  color: var(--gold);
+  background: rgba(212,175,108,0.05);
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+}
+.export-btn:hover {
+  background: var(--gold-soft);
+  color: var(--gold-3);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
 .tag-running, .tag-done   { color: var(--green); border-color: rgba(125,211,174,0.35); }
 .tag-finished             { color: var(--ink-dim); }
 .tag-stopped              { color: var(--amber); border-color: rgba(224,168,69,0.35); }

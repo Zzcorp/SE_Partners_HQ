@@ -174,7 +174,7 @@
   <div class="leads-wrap">
     <table class="leads-table">
       <thead>
-        <tr><th>ID</th><th>Started</th><th>Finished</th><th>Queries</th><th>People</th><th>Leads</th><th>Status</th></tr>
+        <tr><th>ID</th><th>Started</th><th>Finished</th><th>Queries</th><th>People</th><th>Leads</th><th>Status</th><th>Export</th></tr>
       </thead>
       <tbody>
         {% for r in recent_runs %}
@@ -186,9 +186,13 @@
           <td>{{ r.people_unique }}</td>
           <td>{{ r.leads_final }}</td>
           <td><span class="tag tag-{{ r.status }}">{{ r.status }}</span></td>
+          <td class="export-cell">
+            <a class="export-btn" href="{% url 'export_csv' r.run_id %}" title="Download CSV">CSV</a>
+            <a class="export-btn" href="{% url 'export_xlsx' r.run_id %}" title="Download Excel">XLSX</a>
+          </td>
         </tr>
         {% empty %}
-        <tr class="empty"><td colspan="7" class="mono">No runs yet.</td></tr>
+        <tr class="empty"><td colspan="8" class="mono">No runs yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
