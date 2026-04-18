@@ -3,12 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#050608">
 <title>{% block title %}The S&amp;E Partners HQ{% endblock %}</title>
 
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050608'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' fill='%23d4af6c' font-family='Georgia,serif' font-style='italic' font-weight='500' font-size='28'%3ES%26E%3C/text%3E%3C/svg%3E">
+{# ===== Social share preview (Open Graph + Twitter) ===== #}
+{% block og_tags %}
+<meta name="description" content="The S&amp;E Partners — sovereign data partners. Web scraping, entity resolution and business-development intelligence engineered for funds, operators and strategists.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The S&amp;E Partners">
+<meta property="og:title" content="The S&amp;E Partners — Sovereign data partners">
+<meta property="og:description" content="Data, in the third dimension. Web scraping, entity resolution and intelligence engineered for decision-makers.">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/se_partners_logo.jpeg' %}">
+<meta property="og:image:alt" content="The S&amp;E Partners — logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The S&amp;E Partners — Sovereign data partners">
+<meta name="twitter:description" content="Data, in the third dimension. Web scraping, entity resolution and intelligence engineered for decision-makers.">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/se_partners_logo.jpeg' %}">
+{% endblock %}
+
+{# ===== Favicons ===== #}
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050608'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' fill='%23d4af6c' font-family='Georgia,serif' font-style='italic' font-weight='500' font-size='28'%3ES%26E%3C/text%3E%3C/svg%3E">
+<link rel="alternate icon" type="image/jpeg" href="{% static 'images/se_partners_logo.jpeg' %}">
+<link rel="apple-touch-icon" href="{% static 'images/se_partners_logo.jpeg' %}">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
