@@ -6,23 +6,47 @@
 <section class="login-card reveal">
   <div class="login-eyebrow mono">restricted access</div>
   <h1 class="login-title">The S&amp;E Partners <span class="accent">HQ</span></h1>
-  <p class="login-sub">Sovereign prospecting console.<br>Enter your PIN to proceed.</p>
+  <p class="login-sub">Sovereign prospecting console.<br>Three layers. No drift.</p>
 
   <form method="post" class="login-form" autocomplete="off" novalidate>
     {% csrf_token %}
+
+    <label class="field">
+      <span class="field-label mono">01 · Username</span>
+      <input type="text"
+             name="username"
+             autocomplete="username"
+             required
+             maxlength="64"
+             class="text-input"
+             placeholder="emilien"
+             autofocus>
+    </label>
+
+    <label class="field">
+      <span class="field-label mono">02 · Password</span>
+      <input type="password"
+             name="password"
+             autocomplete="current-password"
+             required
+             class="text-input"
+             placeholder="••••••••">
+    </label>
+
     <label class="field pin-field">
-      <span class="field-label mono">Access code</span>
+      <span class="field-label mono">03 · Access PIN</span>
       <input type="password"
              name="pin"
              inputmode="numeric"
              pattern="[0-9]*"
              autocomplete="one-time-code"
-             autofocus
              required
-             maxlength="12"
+             maxlength="4"
+             minlength="4"
              class="pin-input"
-             placeholder="••••">
+             placeholder="• • • •">
     </label>
+
     {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
     <button type="submit" class="btn btn-primary">Unlock console</button>
   </form>

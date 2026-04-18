@@ -1,0 +1,122 @@
+{% extends "hq/base.html" %}
+{% block title %}Profile · The S&amp;E Partners HQ{% endblock %}
+{% block body_class %}page-profile{% endblock %}
+
+{% block content %}
+<section class="hero reveal">
+  <div class="hero-left">
+    <div class="eyebrow mono">— operator profile —</div>
+    <h1 class="hero-title">{{ profile.display_name|default:request.user.username }}<br><span class="accent">{{ request.user.username }}</span></h1>
+    <p class="hero-lead">Your identity on the console. Color sets how you appear on the shared calendar.</p>
+  </div>
+  <div class="hero-right">
+    <div class="profile-avatar" style="--avatar:{{ profile.color|default:'#d4af6c' }}">
+      {{ request.user.username|slice:':1'|upper }}
+    </div>
+  </div>
+</section>
+
+{% if error %}<div class="toast toast-err reveal">{{ error }}</div>{% endif %}
+{% if notice %}<div class="toast toast-ok reveal">{{ notice }}</div>{% endif %}
+
+<section class="grid-3 reveal">
+  <div class="metric-card">
+    <div class="metric-label mono">TASKS AUTHORED</div>
+    <div class="metric-value">{{ authored_count }}</div>
+    <div class="metric-sub mono">ideas you proposed</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label mono">TASKS ASSIGNED</div>
+    <div class="metric-value">{{ assigned_count }}</div>
+    <div class="metric-sub mono">on your plate</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label mono">TASKS DONE</div>
+    <div class="metric-value">{{ done_count }}</div>
+    <div class="metric-sub mono">shipped</div>
+  </div>
+</section>
+
+<section class="grid-2 reveal">
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">Identity</h2>
+      <div class="panel-sub mono">display · color · bio</div>
+    </div>
+    <form method="post" class="control-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="info">
+
+      <label class="field field-wide">
+        <span class="field-label mono">Display name</span>
+        <input type="text" name="display_name" value="{{ profile.display_name }}" maxlength="80" class="text-input">
+      </label>
+
+      <label class="field">
+        <span class="field-label mono">Calendar color</span>
+        <input type="color" name="color" value="{{ profile.color|default:'#d4af6c' }}" class="color-input">
+      </label>
+
+      <label class="field field-wide">
+        <span class="field-label mono">Bio</span>
+        <textarea name="bio" rows="4" maxlength="2000" class="text-input">{{ profile.bio }}</textarea>
+      </label>
+
+      <div class="control-actions">
+        <button type="submit" class="btn btn-primary">Save identity</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">Security</h2>
+      <div class="panel-sub mono">password · pin</div>
+    </div>
+
+    <form method="post" class="control-form" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="password">
+      <div class="field-label mono section-label">Password</div>
+      <label class="field field-wide">
+        <span class="field-label mono">Current</span>
+        <input type="password" name="current_password" class="text-input" autocomplete="current-password" required>
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label mono">New</span>
+          <input type="password" name="new_password" class="text-input" autocomplete="new-password" required minlength="8">
+        </label>
+        <label class="field">
+          <span class="field-label mono">Confirm</span>
+          <input type="password" name="new_password_confirm" class="text-input" autocomplete="new-password" required minlength="8">
+        </label>
+      </div>
+      <div class="control-actions">
+        <button type="submit" class="btn btn-ghost">Update password</button>
+      </div>
+    </form>
+
+    <form method="post" class="control-form" autocomplete="off" style="margin-top:1.2rem">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="pin">
+      <div class="field-label mono section-label">Access PIN</div>
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label mono">Current PIN</span>
+          <input type="password" name="current_pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" minlength="4" class="pin-input" required>
+        </label>
+        <label class="field">
+          <span class="field-label mono">New PIN (4 digits)</span>
+          <input type="password" name="new_pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" minlength="4" class="pin-input" required>
+        </label>
+      </div>
+      <div class="control-actions">
+        <button type="submit" class="btn btn-ghost">Update PIN</button>
+      </div>
+    </form>
+  </div>
+
+</section>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "hq/base.html" %}
+{% block title %}Board · The S&amp;E Partners HQ{% endblock %}
+{% block body_class %}page-board{% endblock %}
+
+{% block content %}
+<section class="hero reveal">
+  <div class="hero-left">
+    <div class="eyebrow mono">— shared task wall —</div>
+    <h1 class="hero-title">Propose. Debate.<br><span class="accent">Ship together.</span></h1>
+    <p class="hero-lead">Drop ideas on the wall. Vote what matters. Schedule what survives. Everyone sees it.</p>
+  </div>
+  <div class="hero-right">
+    <div class="hero-stat">
+      <div class="hero-stat-label mono">OPEN IDEAS</div>
+      <div class="hero-stat-value on">{{ tasks|length }}</div>
+    </div>
+  </div>
+</section>
+
+<section class="panel reveal">
+  <div class="panel-head">
+    <h2 class="panel-title">Drop an idea</h2>
+    <div class="panel-sub mono">anyone · anything · anytime</div>
+  </div>
+  <form method="post" action="{% url 'task_create' %}" class="control-form board-create">
+    {% csrf_token %}
+    <div class="field-row">
+      <label class="field field-wide">
+        <span class="field-label mono">Title</span>
+        <input type="text" name="title" maxlength="200" class="text-input" placeholder="e.g. Map all French FoF with 2024 close" required>
+      </label>
+    </div>
+    <div class="field-row">
+      <label class="field field-wide">
+        <span class="field-label mono">Details (optional)</span>
+        <textarea name="description" rows="2" class="text-input" placeholder="Context, links, constraints…"></textarea>
+      </label>
+    </div>
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label mono">Assign to</span>
+        <select name="assignee" class="text-input">
+          <option value="">— nobody yet —</option>
+          {% for u in users %}
+            <option value="{{ u.id }}">{{ u.profile.display_name|default:u.username }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label mono">Start</span>
+        <input type="date" name="start_date" class="text-input">
+      </label>
+      <label class="field">
+        <span class="field-label mono">End</span>
+        <input type="date" name="end_date" class="text-input">
+      </label>
+    </div>
+    <div class="control-actions">
+      <button type="submit" class="btn btn-primary">Post to the wall</button>
+    </div>
+  </form>
+</section>
+
+<section class="reveal board-toolbar">
+  <div class="filter-group">
+    <span class="mono field-label">Status</span>
+    <a class="chip {% if not status %}is-active{% endif %}" href="?sort={{ sort }}">All</a>
+    <a class="chip {% if status == 'open' %}is-active{% endif %}" href="?status=open&sort={{ sort }}">Open</a>
+    <a class="chip {% if status == 'in_progress' %}is-active{% endif %}" href="?status=in_progress&sort={{ sort }}">In progress</a>
+    <a class="chip {% if status == 'done' %}is-active{% endif %}" href="?status=done&sort={{ sort }}">Done</a>
+  </div>
+  <div class="filter-group">
+    <span class="mono field-label">Sort</span>
+    <a class="chip {% if sort == 'hot' or not sort %}is-active{% endif %}" href="?status={{ status }}&sort=hot">Hot</a>
+    <a class="chip {% if sort == 'new' %}is-active{% endif %}" href="?status={{ status }}&sort=new">New</a>
+    <a class="chip {% if sort == 'votes' %}is-active{% endif %}" href="?status={{ status }}&sort=votes">Votes</a>
+  </div>
+</section>
+
+<section class="wall reveal">
+  {% for t in tasks %}
+    <article class="wall-card" style="--author-color:{{ t.author.profile.color|default:'#d4af6c' }}">
+      <div class="wall-vote">
+        <form method="post" action="{% url 'task_vote' t.id %}" class="vote-form">
+          {% csrf_token %}<input type="hidden" name="value" value="1">
+          <button type="submit" class="vote-btn up {% if t.user_vote == 1 %}is-on{% endif %}" title="Up">▲</button>
+        </form>
+        <div class="vote-score mono">{{ t.score }}</div>
+        <form method="post" action="{% url 'task_vote' t.id %}" class="vote-form">
+          {% csrf_token %}<input type="hidden" name="value" value="-1">
+          <button type="submit" class="vote-btn down {% if t.user_vote == -1 %}is-on{% endif %}" title="Down">▼</button>
+        </form>
+      </div>
+
+      <div class="wall-body">
+        <div class="wall-meta mono">
+          <span class="wall-author">
+            <span class="avatar sm" style="--avatar:{{ t.author.profile.color|default:'#d4af6c' }}">{{ t.author.username|slice:':1'|upper }}</span>
+            {{ t.author.profile.display_name|default:t.author.username }}
+          </span>
+          <span>·</span>
+          <span>{{ t.created_at|date:"M d · H:i" }}</span>
+          {% if t.start_date %}
+            <span>·</span>
+            <span class="wall-date">📅 {{ t.start_date|date:"M d" }}{% if t.end_date and t.end_date != t.start_date %} → {{ t.end_date|date:"M d" }}{% endif %}</span>
+          {% endif %}
+          {% if t.assignee %}
+            <span>·</span>
+            <span class="wall-assignee">
+              <span class="avatar xs" style="--avatar:{{ t.assignee.profile.color|default:'#d4af6c' }}">{{ t.assignee.username|slice:':1'|upper }}</span>
+              {{ t.assignee.profile.display_name|default:t.assignee.username }}
+            </span>
+          {% endif %}
+          <span class="tag tag-{{ t.status }}">{{ t.get_status_display }}</span>
+        </div>
+
+        <a class="wall-title" href="{% url 'task_detail' t.id %}">{{ t.title }}</a>
+        {% if t.description %}<p class="wall-desc">{{ t.description|truncatechars:240 }}</p>{% endif %}
+
+        <div class="wall-actions">
+          <form method="post" action="{% url 'task_like' t.id %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="like-btn {% if t.user_liked %}is-on{% endif %}" title="Like">
+              <span class="heart">♥</span> <span class="mono">{{ t.like_count }}</span>
+            </button>
+          </form>
+          <a class="wall-link mono" href="{% url 'task_detail' t.id %}">
+            💬 {{ t.comments.count }} comment{{ t.comments.count|pluralize }}
+          </a>
+        </div>
+      </div>
+    </article>
+  {% empty %}
+    <div class="empty-wall mono">No tasks yet. Drop the first one above.</div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "hq/base.html" %}
+{% block title %}{{ task.title }} · Board{% endblock %}
+{% block body_class %}page-task{% endblock %}
+
+{% block content %}
+<section class="reveal">
+  <a class="back-link mono" href="{% url 'board' %}">← back to board</a>
+</section>
+
+<section class="task-hero reveal" style="--author-color:{{ task.author.profile.color|default:'#d4af6c' }}">
+  <div class="task-hero-head">
+    <div class="task-vote">
+      <form method="post" action="{% url 'task_vote' task.id %}" class="vote-form">
+        {% csrf_token %}<input type="hidden" name="value" value="1">
+        <button type="submit" class="vote-btn up {% if voted_value == 1 %}is-on{% endif %}">▲</button>
+      </form>
+      <div class="vote-score mono">{{ task.score }}</div>
+      <form method="post" action="{% url 'task_vote' task.id %}" class="vote-form">
+        {% csrf_token %}<input type="hidden" name="value" value="-1">
+        <button type="submit" class="vote-btn down {% if voted_value == -1 %}is-on{% endif %}">▼</button>
+      </form>
+    </div>
+    <div class="task-hero-body">
+      <div class="wall-meta mono">
+        <span class="wall-author">
+          <span class="avatar sm" style="--avatar:{{ task.author.profile.color|default:'#d4af6c' }}">{{ task.author.username|slice:':1'|upper }}</span>
+          {{ task.author.profile.display_name|default:task.author.username }}
+        </span>
+        <span>·</span>
+        <span>{{ task.created_at|date:"M d · H:i" }}</span>
+        <span class="tag tag-{{ task.status }}">{{ task.get_status_display }}</span>
+      </div>
+      <h1 class="hero-title">{{ task.title }}</h1>
+      {% if task.description %}<p class="task-desc">{{ task.description|linebreaksbr }}</p>{% endif %}
+
+      <div class="wall-actions">
+        <form method="post" action="{% url 'task_like' task.id %}" class="inline-form">
+          {% csrf_token %}
+          <button type="submit" class="like-btn {% if liked %}is-on{% endif %}">
+            <span class="heart">♥</span> <span class="mono">{{ task.like_count }}</span>
+          </button>
+        </form>
+        {% if task.start_date %}
+          <span class="mono wall-date">📅 {{ task.start_date|date:"M d, Y" }}{% if task.end_date and task.end_date != task.start_date %} → {{ task.end_date|date:"M d, Y" }}{% endif %}</span>
+        {% endif %}
+        {% if task.assignee %}
+          <span class="mono wall-assignee">
+            <span class="avatar xs" style="--avatar:{{ task.assignee.profile.color|default:'#d4af6c' }}">{{ task.assignee.username|slice:':1'|upper }}</span>
+            assigned to {{ task.assignee.profile.display_name|default:task.assignee.username }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="grid-2 reveal">
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">Controls</h2>
+      <div class="panel-sub mono">status · assignee · schedule</div>
+    </div>
+
+    <form method="post" class="control-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="status">
+      <label class="field field-wide">
+        <span class="field-label mono">Status</span>
+        <select name="status" class="text-input">
+          <option value="open" {% if task.status == 'open' %}selected{% endif %}>Open</option>
+          <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In progress</option>
+          <option value="done" {% if task.status == 'done' %}selected{% endif %}>Done</option>
+          <option value="archived" {% if task.status == 'archived' %}selected{% endif %}>Archived</option>
+        </select>
+      </label>
+      <div class="control-actions"><button type="submit" class="btn btn-ghost">Update status</button></div>
+    </form>
+
+    <form method="post" class="control-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="assign">
+      <label class="field field-wide">
+        <span class="field-label mono">Assignee</span>
+        <select name="assignee" class="text-input">
+          <option value="">— nobody —</option>
+          {% for u in users %}
+            <option value="{{ u.id }}" {% if task.assignee_id == u.id %}selected{% endif %}>{{ u.profile.display_name|default:u.username }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="control-actions"><button type="submit" class="btn btn-ghost">Assign</button></div>
+    </form>
+
+    <form method="post" class="control-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="schedule">
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label mono">Start</span>
+          <input type="date" name="start_date" class="text-input" value="{{ task.start_date|date:'Y-m-d' }}">
+        </label>
+        <label class="field">
+          <span class="field-label mono">End</span>
+          <input type="date" name="end_date" class="text-input" value="{{ task.end_date|date:'Y-m-d' }}">
+        </label>
+      </div>
+      <div class="control-actions"><button type="submit" class="btn btn-ghost">Save dates</button></div>
+    </form>
+
+    {% if request.user == task.author %}
+    <form method="post" class="control-form danger-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <div class="control-actions"><button type="submit" class="btn btn-danger" onclick="return confirm('Delete this task?')">Delete task</button></div>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">Discussion</h2>
+      <div class="panel-sub mono">{{ comments|length }} comment{{ comments|length|pluralize }}</div>
+    </div>
+
+    <div class="comments">
+      {% for c in comments %}
+        <div class="comment" style="--author-color:{{ c.author.profile.color|default:'#d4af6c' }}">
+          <div class="comment-head mono">
+            <span class="avatar xs" style="--avatar:{{ c.author.profile.color|default:'#d4af6c' }}">{{ c.author.username|slice:':1'|upper }}</span>
+            <strong>{{ c.author.profile.display_name|default:c.author.username }}</strong>
+            <span class="dot-sep">·</span>
+            <span>{{ c.created_at|date:"M d · H:i" }}</span>
+          </div>
+          <div class="comment-body">{{ c.body|linebreaksbr }}</div>
+        </div>
+      {% empty %}
+        <div class="empty-inline mono">No comments yet. Start the thread.</div>
+      {% endfor %}
+    </div>
+
+    <form method="post" class="control-form" style="margin-top:1rem">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="comment">
+      <label class="field field-wide">
+        <span class="field-label mono">Your take</span>
+        <textarea name="body" rows="3" class="text-input" maxlength="5000" required placeholder="Push back, add context, propose…"></textarea>
+      </label>
+      <div class="control-actions"><button type="submit" class="btn btn-primary">Post comment</button></div>
+    </form>
+  </div>
+
+</section>
+{% endblock %}

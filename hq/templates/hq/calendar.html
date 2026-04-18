@@ -1,0 +1,91 @@
+{% extends "hq/base.html" %}
+{% block title %}Calendar · The S&amp;E Partners HQ{% endblock %}
+{% block body_class %}page-calendar{% endblock %}
+
+{% block content %}
+<section class="hero reveal">
+  <div class="hero-left">
+    <div class="eyebrow mono">— shared calendar —</div>
+    <h1 class="hero-title">See who's on what.<br><span class="accent">{{ month_label }}</span></h1>
+    <p class="hero-lead">Every scheduled task lights up the grid in its author's color. Click any day to add a to-do.</p>
+  </div>
+  <div class="hero-right">
+    <div class="cal-nav">
+      <a class="btn btn-ghost btn-sm" href="?y={{ prev_year }}&m={{ prev_month }}">← Prev</a>
+      <a class="btn btn-ghost btn-sm" href="{% url 'calendar' %}">Today</a>
+      <a class="btn btn-ghost btn-sm" href="?y={{ next_year }}&m={{ next_month }}">Next →</a>
+    </div>
+  </div>
+</section>
+
+<section class="panel reveal">
+  <div class="panel-head">
+    <h2 class="panel-title">Quick add to-do</h2>
+    <div class="panel-sub mono">visible to everyone</div>
+  </div>
+  <form method="post" action="{% url 'calendar_create' %}" class="control-form">
+    {% csrf_token %}
+    <input type="hidden" name="return_y" value="{{ year }}">
+    <input type="hidden" name="return_m" value="{{ month }}">
+    <div class="field-row">
+      <label class="field field-wide">
+        <span class="field-label mono">Title</span>
+        <input type="text" name="title" class="text-input" maxlength="200" required placeholder="e.g. Brunch with Oppenheimer GP">
+      </label>
+      <label class="field">
+        <span class="field-label mono">Start</span>
+        <input type="date" name="start_date" class="text-input" required>
+      </label>
+      <label class="field">
+        <span class="field-label mono">End</span>
+        <input type="date" name="end_date" class="text-input">
+      </label>
+    </div>
+    <div class="control-actions">
+      <button type="submit" class="btn btn-primary">Place on the calendar</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel reveal">
+  <div class="calendar-grid">
+    {% for wd in weekday_labels %}
+      <div class="cal-head mono">{{ wd }}</div>
+    {% endfor %}
+
+    {% for week in weeks %}
+      {% for day in week %}
+        <div class="cal-cell {% if not day.in_month %}is-out{% endif %} {% if day.is_today %}is-today{% endif %}">
+          <div class="cal-day mono">{{ day.date|date:"j" }}</div>
+          <div class="cal-items">
+            {% for t in day.tasks %}
+              <a class="cal-pill tag-{{ t.status }}"
+                 href="{% url 'task_detail' t.id %}"
+                 style="--author-color:{{ t.author.profile.color|default:'#d4af6c' }}"
+                 title="{{ t.title }} — {{ t.author.profile.display_name|default:t.author.username }}">
+                <span class="cal-dot"></span>
+                <span class="cal-title">{{ t.title|truncatechars:22 }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel reveal">
+  <div class="panel-head">
+    <h2 class="panel-title">Legend</h2>
+    <div class="panel-sub mono">one color per operator</div>
+  </div>
+  <div class="legend-row">
+    {% for u in users %}
+      <span class="legend-pill">
+        <span class="avatar xs" style="--avatar:{{ u.profile.color|default:'#d4af6c' }}">{{ u.username|slice:':1'|upper }}</span>
+        {{ u.profile.display_name|default:u.username }}
+      </span>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

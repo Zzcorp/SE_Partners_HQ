@@ -15,9 +15,9 @@ class EventsConsumer(AsyncWebsocketConsumer):
     """Subscribe au Broadcaster in-memory, relaie chaque event au client."""
 
     async def connect(self) -> None:
-        # Auth via session Django : le scope contient la session
-        session = self.scope.get("session")
-        if not session or not session.get("hq_auth"):
+        # Auth via session Django : l'utilisateur doit être authentifié
+        user = self.scope.get("user")
+        if user is None or not getattr(user, "is_authenticated", False):
             await self.close(code=4401)
             return
         await self.accept()

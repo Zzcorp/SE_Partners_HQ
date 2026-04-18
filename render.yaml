@@ -9,7 +9,9 @@ services:
       pip install --upgrade pip
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate --noinput
+    preDeployCommand: |
+      python manage.py migrate --noinput
+      python manage.py seed_users
     startCommand: daphne -b 0.0.0.0 -p $PORT sehq.asgi:application
     healthCheckPath: /healthz
     envVars:
