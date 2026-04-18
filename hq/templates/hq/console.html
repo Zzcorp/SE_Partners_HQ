@@ -9,11 +9,11 @@
 
 {% block content %}
 
-<!-- ========= LAUNCH STRIP (everything in one glance) ========= -->
+<!-- ========= LAUNCH STRIP (pinned) ========= -->
 <section class="launch-strip reveal">
   <form id="start-form" class="launch-strip-form" autocomplete="off">
     <div class="launch-main">
-      <div class="launch-eyebrow mono">— prospecting engine —</div>
+      <div class="launch-eyebrow mono">— prospecting engine · sovereign floor —</div>
       <h1 class="launch-title">Pick an intensity. <span class="accent">Launch.</span></h1>
 
       <div class="preset-row" role="radiogroup" aria-label="Scraping intensity">
@@ -95,8 +95,118 @@
   </details>
 </section>
 
-<!-- ========= LIVE STATE : pipeline + progress + narration ========= -->
-<section class="live-state reveal">
+<!-- ========= STATUS RIBBON (always visible across tabs) ========= -->
+<section class="status-ribbon" aria-label="Run status">
+  <div class="sr-left">
+    <span class="sr-state-pill" id="sr-state">IDLE</span>
+    <span class="sr-elapsed mono" id="sr-elapsed">00:00</span>
+  </div>
+  <div class="sr-mid">
+    <div class="sr-progress-wrap">
+      <div class="sr-progress-bar"><span class="sr-progress-fill" id="sr-progress-fill"></span></div>
+      <div class="sr-progress-meta mono">
+        <span id="sr-pct">0</span>% · <span id="sr-done">0</span>/<span id="sr-total">0</span> queries · ETA <span id="sr-eta">—</span>
+      </div>
+    </div>
+  </div>
+  <div class="sr-right mono">
+    <span class="sr-kpi"><b id="sr-workers">0</b> workers</span>
+    <span class="sr-kpi"><b id="sr-pages-rate">0</b>/min pages</span>
+    <span class="sr-kpi"><b id="sr-people-rate">0</b>/min people</span>
+  </div>
+</section>
+
+<!-- ========= TAB NAV ========= -->
+<nav class="console-tabs" role="tablist" aria-label="Console sections">
+  <button class="console-tab is-active" data-tab="overview"  role="tab" aria-selected="true">
+    <span class="ctab-label">Overview</span>
+  </button>
+  <button class="console-tab" data-tab="workers"  role="tab" aria-selected="false">
+    <span class="ctab-label">Workers</span>
+    <span class="ctab-badge mono" id="ctab-workers-badge">0</span>
+  </button>
+  <button class="console-tab" data-tab="intel"    role="tab" aria-selected="false">
+    <span class="ctab-label">Intel</span>
+    <span class="ctab-badge mono" id="ctab-intel-badge">0</span>
+  </button>
+  <button class="console-tab" data-tab="map"      role="tab" aria-selected="false">
+    <span class="ctab-label">Map</span>
+    <span class="ctab-badge mono" id="ctab-map-badge">0</span>
+  </button>
+  <button class="console-tab" data-tab="log"      role="tab" aria-selected="false">
+    <span class="ctab-label">Log</span>
+    <span class="ctab-badge mono" id="ctab-log-badge">0</span>
+  </button>
+  <button class="console-tab" data-tab="leads"    role="tab" aria-selected="false">
+    <span class="ctab-label">Leads</span>
+    <span class="ctab-badge mono" id="ctab-leads-badge">0</span>
+  </button>
+  <button class="console-tab" data-tab="history"  role="tab" aria-selected="false">
+    <span class="ctab-label">History</span>
+  </button>
+</nav>
+
+<div class="console-tab-panels">
+
+<!-- ========= OVERVIEW ========= -->
+<section class="console-tab-panel is-active" data-tab-panel="overview" role="tabpanel">
+
+  <div class="hero-metrics" aria-label="Live run metrics">
+    <div class="hmetric" data-metric="pages">
+      <div class="hmetric-head">
+        <span class="hmetric-label mono">PAGES FETCHED</span>
+        <span class="hmetric-delta mono" id="hm-pages-rate">0 /min</span>
+      </div>
+      <div class="hmetric-value" id="hm-pages">0</div>
+      <canvas class="hmetric-spark" id="spark-pages" width="240" height="36"></canvas>
+    </div>
+
+    <div class="hmetric" data-metric="people">
+      <div class="hmetric-head">
+        <span class="hmetric-label mono">PEOPLE PARSED</span>
+        <span class="hmetric-delta mono" id="hm-people-rate">0 /min</span>
+      </div>
+      <div class="hmetric-value" id="hm-people">0</div>
+      <canvas class="hmetric-spark" id="spark-people" width="240" height="36"></canvas>
+    </div>
+
+    <div class="hmetric" data-metric="unique">
+      <div class="hmetric-head">
+        <span class="hmetric-label mono">UNIQUE LEADS</span>
+        <span class="hmetric-delta mono"><span id="hm-yield">—</span>% yield</span>
+      </div>
+      <div class="hmetric-value" id="hm-unique">0</div>
+      <div class="hmetric-sub mono"><span id="hm-final">0</span> final · <span id="hm-dup">0</span> dedup</div>
+    </div>
+
+    <div class="hmetric" data-metric="llm">
+      <div class="hmetric-head">
+        <span class="hmetric-label mono">LLM AVG</span>
+        <span class="hmetric-delta mono"><span id="hm-llm-n">0</span> scored</span>
+      </div>
+      <div class="hmetric-value" id="hm-llm">—</div>
+      <div class="hmetric-meter"><span class="hmetric-meter-fill" id="hm-llm-fill"></span></div>
+    </div>
+
+    <div class="hmetric hmetric-accent" data-metric="hv">
+      <div class="hmetric-head">
+        <span class="hmetric-label mono">HIGH-VALUE</span>
+        <span class="hmetric-delta mono">LLM ≥ 80</span>
+      </div>
+      <div class="hmetric-value" id="hm-hv">0</div>
+      <div class="hmetric-sub mono"><span id="hm-founder">0</span> founder · <span id="hm-exec">0</span> exec</div>
+    </div>
+
+    <div class="hmetric" data-metric="geo">
+      <div class="hmetric-head">
+        <span class="hmetric-label mono">COUNTRIES</span>
+        <span class="hmetric-delta mono"><span id="hm-cities">0</span> cities</span>
+      </div>
+      <div class="hmetric-value" id="hm-countries">0</div>
+      <div class="hmetric-sub mono" id="hm-top-country">—</div>
+    </div>
+  </div>
+
   <div class="panel panel-live">
     <div class="panel-head panel-head-live">
       <div>
@@ -107,10 +217,10 @@
         <span class="thr-item"><span id="thr-pages">0</span> pages/min</span>
         <span class="thr-item"><span id="thr-people">0</span> people/min</span>
         <span class="thr-item"><span id="thr-eta">—</span> ETA</span>
+        <span class="thr-item"><span id="thr-elapsed">—</span> elapsed</span>
       </div>
     </div>
 
-    <!-- Pipeline flow : 4 stages -->
     <div class="pipeflow">
       <div class="pipestage" data-stage="search">
         <div class="pipestage-head">
@@ -118,65 +228,57 @@
           <span class="pipestage-label">SEARCH</span>
         </div>
         <div class="pipestage-value" id="stage-search">0<span class="pipestage-slash">/</span><span id="stage-search-total">0</span></div>
-        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-search-fill" style="--p: 0"></span></div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-search-fill"></span></div>
         <div class="pipestage-sub mono">queries ran</div>
       </div>
-
       <div class="pipearrow" aria-hidden="true">▸</div>
-
       <div class="pipestage" data-stage="fetch">
         <div class="pipestage-head">
           <span class="pipestage-num mono">02</span>
           <span class="pipestage-label">FETCH</span>
         </div>
         <div class="pipestage-value" id="stage-fetch">0</div>
-        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-fetch-fill" style="--p: 0"></span></div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-fetch-fill"></span></div>
         <div class="pipestage-sub mono"><span id="stage-fetch-ok">0</span> ok · <span id="stage-fetch-err">0</span> err</div>
       </div>
-
       <div class="pipearrow" aria-hidden="true">▸</div>
-
       <div class="pipestage" data-stage="extract">
         <div class="pipestage-head">
           <span class="pipestage-num mono">03</span>
           <span class="pipestage-label">EXTRACT</span>
         </div>
         <div class="pipestage-value" id="stage-extract">0</div>
-        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-extract-fill" style="--p: 0"></span></div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-extract-fill"></span></div>
         <div class="pipestage-sub mono">people parsed</div>
       </div>
-
       <div class="pipearrow" aria-hidden="true">▸</div>
-
       <div class="pipestage" data-stage="enrich">
         <div class="pipestage-head">
           <span class="pipestage-num mono">04</span>
           <span class="pipestage-label">ENRICH</span>
         </div>
         <div class="pipestage-value" id="stage-enrich">0</div>
-        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-enrich-fill" style="--p: 0"></span></div>
+        <div class="pipestage-meter"><span class="pipestage-meter-fill" id="stage-enrich-fill"></span></div>
         <div class="pipestage-sub mono"><span id="stage-final">0</span> final</div>
       </div>
     </div>
 
-    <!-- Overall progress + live narration -->
     <div class="progress-row">
       <div class="progress-wrap">
         <div class="progress-label mono">RUN PROGRESS</div>
-        <div class="progress-bar"><span class="progress-bar-fill" id="progress-fill" style="--p: 0"></span></div>
+        <div class="progress-bar"><span class="progress-bar-fill" id="progress-fill"></span></div>
         <div class="progress-sub mono"><span id="progress-pct">0</span>% · <span id="progress-done">0</span> of <span id="progress-total">0</span> queries</div>
       </div>
 
       <div class="narration" aria-live="polite">
-        <div class="narration-label mono">NOW</div>
-        <div class="narration-text" id="narration">
-          <span class="narr-tag mono">idle</span>
-          <span class="narr-msg">waiting for a run…</span>
+        <span class="narr-pulse" aria-hidden="true"></span>
+        <div class="narr-body">
+          <span class="narr-tag mono" id="narr-tag">idle</span>
+          <span class="narr-msg" id="narr-msg">waiting for a run…</span>
         </div>
       </div>
     </div>
 
-    <!-- Coverage tiles -->
     <div class="coverage-grid">
       <div class="cov-tile">
         <div class="cov-label mono">SOURCES</div>
@@ -199,27 +301,59 @@
         <div class="cov-sub mono">senior / exec / founder</div>
       </div>
       <div class="cov-tile">
-        <div class="cov-label mono">HIGH-VALUE</div>
-        <div class="cov-value accent" id="cov-hv">0</div>
-        <div class="cov-sub mono">LLM ≥ 80</div>
-      </div>
-      <div class="cov-tile">
         <div class="cov-label mono">LINKEDIN</div>
         <div class="cov-value" id="cov-linkedin">0</div>
         <div class="cov-sub mono">profiles resolved</div>
       </div>
+      <div class="cov-tile">
+        <div class="cov-label mono">FUND SIZE</div>
+        <div class="cov-value" id="cov-fundsize">0</div>
+        <div class="cov-sub mono">with sizing</div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- Live workers strip -->
-    <div class="workers-strip" id="workers-grid">
+<!-- ========= WORKERS ========= -->
+<section class="console-tab-panel" data-tab-panel="workers" role="tabpanel">
+  <div class="panel panel-workers">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">Worker mesh</h2>
+        <div class="panel-sub mono"><span id="workers-active">0</span> active · <span id="workers-idle">0</span> idle · <span id="workers-total">0</span> total</div>
+      </div>
+      <div class="worker-legend mono">
+        <span class="legend-chip legend-chip-search">search</span>
+        <span class="legend-chip legend-chip-fetch">fetch</span>
+        <span class="legend-chip legend-chip-extract">extract</span>
+        <span class="legend-chip legend-chip-enrich">enrich</span>
+      </div>
+    </div>
+    <div class="worker-mesh" id="worker-mesh">
       <div class="worker-placeholder mono">Waiting for run…</div>
     </div>
   </div>
 </section>
 
-<!-- ========= WORLD VISION + TERMINAL ========= -->
-<section class="console-grid reveal">
-  <div class="panel panel-map">
+<!-- ========= INTEL ========= -->
+<section class="console-tab-panel" data-tab-panel="intel" role="tabpanel">
+  <div class="panel panel-intel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">Company intel · live stream</h2>
+        <div class="panel-sub mono"><span id="intel-count">0</span> cards · most recent first</div>
+      </div>
+      <span class="intel-legend mono">streams on enrichment</span>
+    </div>
+    <div class="intel-stream" id="intel-stream">
+      <div class="intel-placeholder mono">When the engine enriches a lead, it streams here with full company context: description, fund sizing, LLM reasoning, seniority, country, and the source that proved it.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========= MAP ========= -->
+<section class="console-tab-panel" data-tab-panel="map" role="tabpanel">
+  <div class="panel panel-map panel-map-fullsize">
     <div class="panel-head panel-head-map">
       <div>
         <h2 class="panel-title">World vision</h2>
@@ -231,92 +365,107 @@
         <span class="legend-item"><i class="legend-dot legend-dot-lo"></i> &lt;50 / ?</span>
       </div>
     </div>
-    <div id="world-map" class="world-map" aria-label="World map of prospects"></div>
+    <div id="world-map" class="world-map world-map-lg" aria-label="World map of prospects"></div>
     <div class="map-tooltip" id="map-tooltip" role="tooltip" hidden></div>
   </div>
+</section>
 
-  <div class="panel panel-terminal">
+<!-- ========= LOG ========= -->
+<section class="console-tab-panel" data-tab-panel="log" role="tabpanel">
+  <div class="panel panel-terminal panel-terminal-fullsize">
     <div class="panel-head">
       <h2 class="panel-title">Live log</h2>
       <div class="panel-sub mono"><span id="log-count">0</span> events · <button type="button" class="link-btn" id="btn-clear-log">clear</button></div>
     </div>
-    <div class="terminal" id="terminal" aria-live="polite"></div>
+    <div class="terminal terminal-lg" id="terminal" aria-live="polite"></div>
+    <div class="domain-ticker" id="domain-ticker" aria-hidden="true"></div>
   </div>
 </section>
 
-<!-- ========= LEADS + BREAKDOWN ========= -->
-<section class="grid-2 reveal">
-  <div class="panel">
+<!-- ========= LEADS ========= -->
+<section class="console-tab-panel" data-tab-panel="leads" role="tabpanel">
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Top leads (live)</h2>
+        <div class="panel-sub mono"><span id="leads-count">0</span> scored</div>
+      </div>
+      <div class="leads-wrap">
+        <table class="leads-table" id="leads-table">
+          <thead>
+            <tr><th>Score</th><th>LLM</th><th>Name</th><th>Role</th><th>Company</th><th>Geo</th><th>Email</th></tr>
+          </thead>
+          <tbody id="leads-body">
+            <tr class="empty"><td colspan="7" class="mono">No leads yet. Launch a run.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Breakdown</h2>
+        <div class="panel-sub mono">live slices</div>
+      </div>
+      <div class="breakdown breakdown-4">
+        <div class="bd-col">
+          <div class="bd-title mono">By role</div>
+          <ul class="bd-list" id="bd-roles"></ul>
+        </div>
+        <div class="bd-col">
+          <div class="bd-title mono">By engine</div>
+          <ul class="bd-list" id="bd-engines"></ul>
+        </div>
+        <div class="bd-col">
+          <div class="bd-title mono">By source</div>
+          <ul class="bd-list" id="bd-sources"></ul>
+        </div>
+        <div class="bd-col">
+          <div class="bd-title mono">By kind</div>
+          <ul class="bd-list" id="bd-kinds"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========= HISTORY ========= -->
+<section class="console-tab-panel" data-tab-panel="history" role="tabpanel">
+  <section class="panel">
     <div class="panel-head">
-      <h2 class="panel-title">Top leads (live)</h2>
-      <div class="panel-sub mono"><span id="leads-count">0</span> scored</div>
+      <h2 class="panel-title">Recent runs</h2>
+      <div class="panel-sub mono">last 10</div>
     </div>
     <div class="leads-wrap">
-      <table class="leads-table" id="leads-table">
+      <table class="leads-table">
         <thead>
-          <tr><th>Score</th><th>LLM</th><th>Name</th><th>Role</th><th>Company</th><th>Geo</th><th>Email</th></tr>
+          <tr><th>ID</th><th>Started</th><th>Finished</th><th>Queries</th><th>People</th><th>Leads</th><th>Status</th><th>Export</th></tr>
         </thead>
-        <tbody id="leads-body">
-          <tr class="empty"><td colspan="7" class="mono">No leads yet. Launch a run.</td></tr>
+        <tbody>
+          {% for r in recent_runs %}
+          <tr>
+            <td class="mono">{{ r.run_id|slice:":8" }}</td>
+            <td class="mono">{{ r.started_at|date:"Y-m-d H:i" }}</td>
+            <td class="mono">{% if r.finished_at %}{{ r.finished_at|date:"H:i" }}{% else %}—{% endif %}</td>
+            <td>{{ r.queries_total }}</td>
+            <td>{{ r.people_unique }}</td>
+            <td>{{ r.leads_final }}</td>
+            <td><span class="tag tag-{{ r.status }}">{{ r.status }}</span></td>
+            <td class="export-cell">
+              <a class="export-btn" href="{% url 'export_csv' r.run_id %}" title="Download CSV">CSV</a>
+              <a class="export-btn" href="{% url 'export_xlsx' r.run_id %}" title="Download Excel">XLSX</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr class="empty"><td colspan="8" class="mono">No runs yet.</td></tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <h2 class="panel-title">Breakdown</h2>
-      <div class="panel-sub mono">live slices</div>
-    </div>
-    <div class="breakdown">
-      <div class="bd-col">
-        <div class="bd-title mono">By role</div>
-        <ul class="bd-list" id="bd-roles"></ul>
-      </div>
-      <div class="bd-col">
-        <div class="bd-title mono">By engine</div>
-        <ul class="bd-list" id="bd-engines"></ul>
-      </div>
-      <div class="bd-col">
-        <div class="bd-title mono">By source</div>
-        <ul class="bd-list" id="bd-sources"></ul>
-      </div>
-    </div>
-  </div>
+  </section>
 </section>
 
-<section class="panel reveal">
-  <div class="panel-head">
-    <h2 class="panel-title">Recent runs</h2>
-    <div class="panel-sub mono">last 10</div>
-  </div>
-  <div class="leads-wrap">
-    <table class="leads-table">
-      <thead>
-        <tr><th>ID</th><th>Started</th><th>Finished</th><th>Queries</th><th>People</th><th>Leads</th><th>Status</th><th>Export</th></tr>
-      </thead>
-      <tbody>
-        {% for r in recent_runs %}
-        <tr>
-          <td class="mono">{{ r.run_id|slice:":8" }}</td>
-          <td class="mono">{{ r.started_at|date:"Y-m-d H:i" }}</td>
-          <td class="mono">{% if r.finished_at %}{{ r.finished_at|date:"H:i" }}{% else %}—{% endif %}</td>
-          <td>{{ r.queries_total }}</td>
-          <td>{{ r.people_unique }}</td>
-          <td>{{ r.leads_final }}</td>
-          <td><span class="tag tag-{{ r.status }}">{{ r.status }}</span></td>
-          <td class="export-cell">
-            <a class="export-btn" href="{% url 'export_csv' r.run_id %}" title="Download CSV">CSV</a>
-            <a class="export-btn" href="{% url 'export_xlsx' r.run_id %}" title="Download Excel">XLSX</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr class="empty"><td colspan="8" class="mono">No runs yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+</div><!-- /console-tab-panels -->
 
 {% endblock %}
 

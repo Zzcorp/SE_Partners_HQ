@@ -176,5 +176,13 @@
     refreshTimer = setTimeout(load, 1200);
   });
 
+  // When the Map tab becomes active, Leaflet needs to remeasure the container
+  // (it was rendered at size 0 while hidden).
+  window.addEventListener("hq:tab-change", (ev) => {
+    if ((ev.detail || {}).tab === "map") {
+      setTimeout(() => { try { map.invalidateSize(); } catch {} }, 60);
+    }
+  });
+
   load();
 })();
