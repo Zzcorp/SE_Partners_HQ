@@ -1,0 +1,250 @@
+{% extends "hq/base.html" %}
+{% load static %}
+{% block title %}Console · The S&amp;E Partners HQ{% endblock %}
+{% block body_class %}page-console{% endblock %}
+
+{% block og_tags %}{{ block.super }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
+{% endblock %}
+
+{% block content %}
+
+<section class="console-head reveal">
+  <div>
+    <div class="eyebrow mono">— prospecting console —</div>
+    <h1 class="console-title">Launch. Watch. <span class="accent">Map the world.</span></h1>
+  </div>
+  <div class="run-status" id="run-status">
+    <span class="run-state mono" id="run-state">idle</span>
+    <span class="run-sub mono"><span id="log-count">0</span> events</span>
+  </div>
+</section>
+
+<section class="console-grid reveal">
+
+  <aside class="panel panel-launcher">
+    <div class="panel-head">
+      <h2 class="panel-title">Launch</h2>
+      <div class="panel-sub mono">one click · smart defaults</div>
+    </div>
+
+    <form id="start-form" class="launcher-form">
+
+      <div class="launcher-row">
+        <label class="field field-wide">
+          <span class="field-label mono">Focus categories <span class="field-hint-inline">(empty = all)</span></span>
+          <select name="categories" id="f-categories" multiple size="5">
+            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <div class="launcher-presets">
+        <span class="field-label mono">Intensity</span>
+        <div class="preset-row" role="radiogroup">
+          <button type="button" class="preset is-active" data-preset="scout" role="radio" aria-checked="true">
+            <span class="preset-title">Scout</span>
+            <span class="preset-sub mono">fast · 5 min</span>
+          </button>
+          <button type="button" class="preset" data-preset="sweep" role="radio" aria-checked="false">
+            <span class="preset-title">Sweep</span>
+            <span class="preset-sub mono">balanced · 15 min</span>
+          </button>
+          <button type="button" class="preset" data-preset="deep" role="radio" aria-checked="false">
+            <span class="preset-title">Deep</span>
+            <span class="preset-sub mono">thorough · 45 min</span>
+          </button>
+        </div>
+      </div>
+
+      <details class="launcher-advanced">
+        <summary class="mono">Advanced settings</summary>
+        <div class="launcher-row">
+          <label class="field">
+            <span class="field-label mono">Min priority</span>
+            <input type="number" name="min_priority" id="f-min-priority" value="5" min="1" max="10">
+          </label>
+          <label class="field">
+            <span class="field-label mono">Results / query</span>
+            <input type="number" name="max_results_per_query" id="f-max-results" value="10" min="1" max="50">
+          </label>
+          <label class="field">
+            <span class="field-label mono">Recency (m)</span>
+            <input type="number" name="recency_months" id="f-recency" value="12" min="0" max="60">
+          </label>
+        </div>
+        <div class="launcher-row">
+          <label class="field">
+            <span class="field-label mono">Fetch workers</span>
+            <input type="number" name="fetch_workers" id="f-fetch-workers" value="3" min="1" max="12">
+          </label>
+          <label class="field">
+            <span class="field-label mono">Extract workers</span>
+            <input type="number" name="extract_workers" id="f-extract-workers" value="2" min="1" max="8">
+          </label>
+          <label class="field">
+            <span class="field-label mono">Enrich workers</span>
+            <input type="number" name="enrich_workers" id="f-enrich-workers" value="2" min="1" max="8">
+          </label>
+        </div>
+        <div class="toggle-grid">
+          <label class="toggle"><input type="checkbox" id="f-use-llm" checked> <span>LLM enrichment</span></label>
+          <label class="toggle"><input type="checkbox" id="f-team-crawl" checked> <span>Team-page crawl</span></label>
+          <label class="toggle"><input type="checkbox" id="f-email-enrich" checked> <span>Email candidates</span></label>
+          <label class="toggle"><input type="checkbox" id="f-recency-required"> <span>Require recent</span></label>
+          <label class="toggle"><input type="checkbox" id="f-pdf-only"> <span>PDFs only</span></label>
+          <label class="toggle"><input type="checkbox" id="f-platforms-only"> <span>Platforms only</span></label>
+          <label class="toggle"><input type="checkbox" id="f-exclude-platforms"> <span>Exclude platforms</span></label>
+        </div>
+      </details>
+
+      <div class="launcher-actions">
+        <button type="submit" class="btn btn-primary btn-launch" id="btn-start">
+          <span class="btn-launch-label">Launch run</span>
+          <span class="btn-launch-arrow">→</span>
+        </button>
+        <button type="button" class="btn btn-ghost" id="btn-stop">Stop</button>
+      </div>
+    </form>
+  </aside>
+
+  <div class="panel panel-map">
+    <div class="panel-head panel-head-map">
+      <div>
+        <h2 class="panel-title">World vision</h2>
+        <div class="panel-sub mono"><span id="map-placed">0</span> located · <span id="map-countries">0</span> countries</div>
+      </div>
+      <div class="map-legend mono">
+        <span class="legend-item"><i class="legend-dot legend-dot-hi"></i> LLM 80+</span>
+        <span class="legend-item"><i class="legend-dot legend-dot-mid"></i> 50-79</span>
+        <span class="legend-item"><i class="legend-dot legend-dot-lo"></i> &lt;50 / ?</span>
+      </div>
+    </div>
+    <div id="world-map" class="world-map" aria-label="World map of prospects"></div>
+    <div class="map-tooltip" id="map-tooltip" role="tooltip" hidden></div>
+  </div>
+
+</section>
+
+<section class="grid-2 reveal">
+
+  <div class="panel panel-terminal">
+    <div class="panel-head">
+      <h2 class="panel-title">Live log</h2>
+      <div class="panel-sub mono"><button type="button" class="link-btn" id="btn-clear-log">clear</button></div>
+    </div>
+    <div class="terminal" id="terminal" aria-live="polite"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">Live metrics</h2>
+      <div class="panel-sub mono">current pipeline state</div>
+    </div>
+    <div class="live-metrics">
+      <div class="live-metric">
+        <div class="lm-label mono">QUERIES</div>
+        <div class="lm-value"><span id="m-queries">0</span><span class="lm-total"> / <span id="m-queries-total">0</span></span></div>
+      </div>
+      <div class="live-metric">
+        <div class="lm-label mono">PAGES</div>
+        <div class="lm-value"><span id="m-pages">0</span></div>
+        <div class="lm-sub mono"><span id="m-pages-ok">0</span> ok · <span id="m-pages-err">0</span> err</div>
+      </div>
+      <div class="live-metric">
+        <div class="lm-label mono">PEOPLE</div>
+        <div class="lm-value"><span id="m-people">0</span></div>
+        <div class="lm-sub mono"><span id="m-people-unique">0</span> unique · <span id="m-leads-final">0</span> final</div>
+      </div>
+    </div>
+    <div class="workers-strip" id="workers-grid">
+      <div class="worker-placeholder mono">Waiting for run…</div>
+    </div>
+  </div>
+
+</section>
+
+<section class="grid-2 reveal">
+  <div class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">Top leads (live)</h2>
+      <div class="panel-sub mono"><span id="leads-count">0</span> scored</div>
+    </div>
+    <div class="leads-wrap">
+      <table class="leads-table" id="leads-table">
+        <thead>
+          <tr><th>Score</th><th>LLM</th><th>Name</th><th>Role</th><th>Company</th><th>Geo</th><th>Email</th></tr>
+        </thead>
+        <tbody id="leads-body">
+          <tr class="empty"><td colspan="7" class="mono">No leads yet. Launch a run.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">Breakdown</h2>
+      <div class="panel-sub mono">live slices</div>
+    </div>
+    <div class="breakdown">
+      <div class="bd-col">
+        <div class="bd-title mono">By role</div>
+        <ul class="bd-list" id="bd-roles"></ul>
+      </div>
+      <div class="bd-col">
+        <div class="bd-title mono">By engine</div>
+        <ul class="bd-list" id="bd-engines"></ul>
+      </div>
+      <div class="bd-col">
+        <div class="bd-title mono">By source</div>
+        <ul class="bd-list" id="bd-sources"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="panel reveal">
+  <div class="panel-head">
+    <h2 class="panel-title">Recent runs</h2>
+    <div class="panel-sub mono">last 10</div>
+  </div>
+  <div class="leads-wrap">
+    <table class="leads-table">
+      <thead>
+        <tr><th>ID</th><th>Started</th><th>Finished</th><th>Queries</th><th>People</th><th>Leads</th><th>Status</th><th>Export</th></tr>
+      </thead>
+      <tbody>
+        {% for r in recent_runs %}
+        <tr>
+          <td class="mono">{{ r.run_id|slice:":8" }}</td>
+          <td class="mono">{{ r.started_at|date:"Y-m-d H:i" }}</td>
+          <td class="mono">{% if r.finished_at %}{{ r.finished_at|date:"H:i" }}{% else %}—{% endif %}</td>
+          <td>{{ r.queries_total }}</td>
+          <td>{{ r.people_unique }}</td>
+          <td>{{ r.leads_final }}</td>
+          <td><span class="tag tag-{{ r.status }}">{{ r.status }}</span></td>
+          <td class="export-cell">
+            <a class="export-btn" href="{% url 'export_csv' r.run_id %}" title="Download CSV">CSV</a>
+            <a class="export-btn" href="{% url 'export_xlsx' r.run_id %}" title="Download Excel">XLSX</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr class="empty"><td colspan="8" class="mono">No runs yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.HQ_CSRF = "{{ csrf_token }}";
+  window.HQ_GEO_URL = "{% url 'api_leads_geo' %}";
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin defer></script>
+<script src="{% static 'hq/js/app.js' %}" defer></script>
+<script src="{% static 'hq/js/worldmap.js' %}" defer></script>
+{% endblock %}

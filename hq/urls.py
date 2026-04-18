@@ -5,7 +5,8 @@ from hq import views
 urlpatterns = [
     path("", views.landing_view, name="landing"),
     path("contact/", views.contact_submit, name="contact_submit"),
-    path("console/", views.dashboard, name="dashboard"),
+    path("dashboard/", views.dashboard, name="dashboard"),
+    path("console/", views.console_view, name="console"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("healthz", views.healthz, name="healthz"),
@@ -31,4 +32,5 @@ urlpatterns = [
     path("api/runs", views.api_runs, name="api_runs"),
     path("api/runs/<str:run_id>/export.csv", views.export_csv, name="export_csv"),
     path("api/runs/<str:run_id>/export.xlsx", views.export_xlsx, name="export_xlsx"),
+    path("api/leads/geo", views.api_leads_geo, name="api_leads_geo"),
 ]

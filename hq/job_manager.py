@@ -80,8 +80,33 @@ class JobManager:
                 status="done",
                 finished_at=timezone.now(),
             )
+            from hq.geo import resolve_centroid
             bulk = []
+            promoted = {
+                "name", "role", "company", "emails", "email_candidates",
+                "phones", "linkedin", "fund_size", "fund_close_step",
+                "recency_months", "lead_score", "source", "source_url",
+                "source_title", "evidence",
+                "country", "city", "lat", "lng",
+                "company_description", "llm_score", "llm_score_reasoning", "seniority",
+            }
             for row in runner.top_leads(limit=1000):
+                country = (row.get("country") or "").upper()[:2]
+                city = (row.get("city") or "")[:120]
+                lat = row.get("lat")
+                lng = row.get("lng")
+                # Fallback to ISO2 centroid when the LLM didn't resolve a precise point
+                if (lat is None or lng is None) and country:
+                    centroid = resolve_centroid(country)
+                    if centroid:
+                        lat = lat if lat is not None else centroid[0]
+                        lng = lng if lng is not None else centroid[1]
+                llm_score = row.get("llm_score")
+                try:
+                    llm_score = float(llm_score) if llm_score is not None else None
+                except (TypeError, ValueError):
+                    llm_score = None
+
                 bulk.append(Lead(
                     run=run,
                     name=(row.get("name") or "")[:200],
@@ -99,12 +124,15 @@ class JobManager:
                     source_url=(row.get("source_url") or "")[:1000],
                     source_title=(row.get("source_title") or "")[:500],
                     evidence=(row.get("evidence") or ""),
-                    data={k: v for k, v in row.items() if k not in {
-                        "name", "role", "company", "emails", "email_candidates",
-                        "phones", "linkedin", "fund_size", "fund_close_step",
-                        "recency_months", "lead_score", "source", "source_url",
-                        "source_title", "evidence",
-                    }},
+                    country=country,
+                    city=city,
+                    lat=lat,
+                    lng=lng,
+                    company_description=(row.get("company_description") or "")[:1200],
+                    llm_score=llm_score,
+                    llm_score_reasoning=(row.get("llm_score_reasoning") or "")[:800],
+                    seniority=(row.get("seniority") or "")[:16],
+                    data={k: v for k, v in row.items() if k not in promoted},
                 ))
             Lead.objects.bulk_create(bulk, batch_size=200)
             return run

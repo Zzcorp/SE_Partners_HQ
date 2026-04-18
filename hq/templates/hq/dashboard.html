@@ -1,166 +1,181 @@
 {% extends "hq/base.html" %}
 {% load static %}
-{% block title %}Console · The S&amp;E Partners HQ{% endblock %}
-{% block body_class %}page-dashboard{% endblock %}
+{% block title %}Dashboard · The S&amp;E Partners HQ{% endblock %}
+{% block body_class %}page-dashboard page-overview{% endblock %}
 
 {% block content %}
 
-<section class="hero reveal">
+<section class="hero reveal dashboard-hero">
   <div class="hero-left">
-    <div class="eyebrow mono">— live prospecting console —</div>
-    <h1 class="hero-title">Command the room.<br><span class="accent">Find every partner.</span></h1>
-    <p class="hero-lead">Distributed scrapers hunt GPs and LPs across the open web, SERP-indexed platforms, and regulatory filings. You watch. You steer. You export.</p>
+    <div class="eyebrow mono">— intelligence dashboard —</div>
+    <h1 class="hero-title">Welcome, <span class="accent">{{ request.user.profile.display_name|default:request.user.username }}</span>.</h1>
+    <p class="hero-lead">Everything you command, at a glance. Metrics, high-value leads, active runs, and your agenda — unified.</p>
   </div>
-  <div class="hero-right">
-    <div class="hero-stat">
-      <div class="hero-stat-label mono">LLM</div>
-      <div class="hero-stat-value {% if llm_enabled %}on{% else %}off{% endif %}">{% if llm_enabled %}ENABLED{% else %}OFF{% endif %}</div>
-    </div>
+  <div class="hero-right dashboard-hero-right">
+    <a class="btn btn-primary btn-hero" href="{% url 'console' %}">Launch a run →</a>
+    <span class="hero-sub mono">LLM <span class="{% if access.llm_enabled %}on{% else %}off{% endif %}">{% if access.llm_enabled %}enabled{% else %}offline{% endif %}</span> · {{ access.team_count }} operator{{ access.team_count|pluralize }}</span>
   </div>
 </section>
 
-<section class="grid-3 reveal">
-  <div class="metric-card" data-metric="queries">
-    <div class="metric-label mono">QUERIES RUN</div>
-    <div class="metric-value" id="m-queries">0</div>
-    <div class="metric-sub mono">of <span id="m-queries-total">0</span> planned</div>
+<section class="kpi-grid reveal">
+  <div class="kpi-card">
+    <div class="kpi-label mono">TOTAL LEADS</div>
+    <div class="kpi-value">{{ total_leads }}</div>
+    <div class="kpi-sub mono">+{{ leads_this_week }} this week</div>
   </div>
-  <div class="metric-card" data-metric="pages">
-    <div class="metric-label mono">PAGES FETCHED</div>
-    <div class="metric-value" id="m-pages">0</div>
-    <div class="metric-sub mono"><span id="m-pages-ok">0</span> ok · <span id="m-pages-err">0</span> err</div>
+  <div class="kpi-card">
+    <div class="kpi-label mono">HIGH-VALUE</div>
+    <div class="kpi-value accent">{{ high_value }}</div>
+    <div class="kpi-sub mono">LLM score ≥ 80</div>
   </div>
-  <div class="metric-card" data-metric="people">
-    <div class="metric-label mono">PEOPLE FOUND</div>
-    <div class="metric-value" id="m-people">0</div>
-    <div class="metric-sub mono"><span id="m-people-unique">0</span> unique · <span id="m-leads-final">0</span> scored</div>
+  <div class="kpi-card">
+    <div class="kpi-label mono">AVG LLM SCORE</div>
+    <div class="kpi-value">{{ avg_llm }}</div>
+    <div class="kpi-sub mono">across scored leads</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label mono">RUNS</div>
+    <div class="kpi-value">{{ total_runs }}</div>
+    <div class="kpi-sub mono">{% if last_run %}last · {{ last_run.started_at|date:"M d, H:i" }}{% else %}none yet{% endif %}</div>
   </div>
 </section>
 
 <section class="grid-2 reveal">
 
-  <div class="panel panel-control">
+  <div class="panel panel-access">
     <div class="panel-head">
-      <h2 class="panel-title">Launch run</h2>
-      <div class="panel-sub mono">configure · start · stop</div>
+      <h2 class="panel-title">Your access</h2>
+      <div class="panel-sub mono">what is live for you</div>
     </div>
-
-    <form id="start-form" class="control-form">
-      <div class="field-row">
-        <label class="field field-wide">
-          <span class="field-label mono">Categories</span>
-          <select name="categories" id="f-categories" multiple size="6">
-            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-          </select>
-          <span class="field-hint">Hold Ctrl/Cmd to pick several. Empty = all.</span>
-        </label>
-      </div>
-
-      <div class="field-row">
-        <label class="field">
-          <span class="field-label mono">Min priority</span>
-          <input type="number" name="min_priority" id="f-min-priority" value="5" min="1" max="10">
-        </label>
-        <label class="field">
-          <span class="field-label mono">Results / query</span>
-          <input type="number" name="max_results_per_query" id="f-max-results" value="10" min="1" max="50">
-        </label>
-        <label class="field">
-          <span class="field-label mono">Recency (months)</span>
-          <input type="number" name="recency_months" id="f-recency" value="12" min="0" max="60">
-        </label>
-      </div>
-
-      <div class="field-row">
-        <label class="field">
-          <span class="field-label mono">Fetch workers</span>
-          <input type="number" name="fetch_workers" id="f-fetch-workers" value="3" min="1" max="12">
-        </label>
-        <label class="field">
-          <span class="field-label mono">Extract workers</span>
-          <input type="number" name="extract_workers" id="f-extract-workers" value="2" min="1" max="8">
-        </label>
-        <label class="field">
-          <span class="field-label mono">Enrich workers</span>
-          <input type="number" name="enrich_workers" id="f-enrich-workers" value="2" min="1" max="8">
-        </label>
-      </div>
-
-      <div class="toggle-grid">
-        <label class="toggle"><input type="checkbox" id="f-use-llm" checked> <span>LLM extraction</span></label>
-        <label class="toggle"><input type="checkbox" id="f-team-crawl" checked> <span>Team-page crawl</span></label>
-        <label class="toggle"><input type="checkbox" id="f-email-enrich" checked> <span>Email candidates (MX)</span></label>
-        <label class="toggle"><input type="checkbox" id="f-recency-required"> <span>Require recent content</span></label>
-        <label class="toggle"><input type="checkbox" id="f-pdf-only"> <span>PDFs only</span></label>
-        <label class="toggle"><input type="checkbox" id="f-platforms-only"> <span>Platform queries only</span></label>
-        <label class="toggle"><input type="checkbox" id="f-exclude-platforms"> <span>Exclude platforms</span></label>
-      </div>
-
-      <div class="control-actions">
-        <button type="submit" class="btn btn-primary" id="btn-start">Start run</button>
-        <button type="button" class="btn btn-ghost" id="btn-stop">Stop</button>
-        <span class="run-state mono" id="run-state">idle</span>
-      </div>
-    </form>
+    <ul class="access-list">
+      <li>
+        <span class="access-icon mono">01</span>
+        <div>
+          <div class="access-title">Prospecting engine</div>
+          <div class="access-sub">{{ access.scrape_categories }} categories · {{ access.platform_groups }} platform packs</div>
+        </div>
+        <a class="access-cta mono" href="{% url 'console' %}">launch →</a>
+      </li>
+      <li>
+        <span class="access-icon mono">02</span>
+        <div>
+          <div class="access-title">LLM enrichment</div>
+          <div class="access-sub">Claude-scored leads with company intel · {% if access.llm_enabled %}online{% else %}offline{% endif %}</div>
+        </div>
+        <span class="tag {% if access.llm_enabled %}tag-done{% else %}tag-archived{% endif %}">{% if access.llm_enabled %}LIVE{% else %}OFF{% endif %}</span>
+      </li>
+      <li>
+        <span class="access-icon mono">03</span>
+        <div>
+          <div class="access-title">Board &amp; calendar</div>
+          <div class="access-sub">Collaborative task wall + shared agenda</div>
+        </div>
+        <a class="access-cta mono" href="{% url 'board' %}">open →</a>
+      </li>
+      <li>
+        <span class="access-icon mono">04</span>
+        <div>
+          <div class="access-title">Exports</div>
+          <div class="access-sub">CSV &amp; XLSX per run · raw + enriched</div>
+        </div>
+        <span class="access-cta mono">per-run</span>
+      </li>
+    </ul>
   </div>
 
-  <div class="panel panel-terminal">
+  <div class="panel panel-geo">
     <div class="panel-head">
-      <h2 class="panel-title">Live log</h2>
-      <div class="panel-sub mono"><span id="log-count">0</span> events · <button type="button" class="link-btn" id="btn-clear-log">clear</button></div>
+      <h2 class="panel-title">Geographic reach</h2>
+      <div class="panel-sub mono">top footprints</div>
     </div>
-    <div class="terminal" id="terminal" aria-live="polite"></div>
+    {% if countries_hit %}
+    <ul class="country-list">
+      {% for c in countries_hit %}
+      <li>
+        <span class="country-flag mono">{{ c.iso2 }}</span>
+        <span class="country-name">{{ c.name }}</span>
+        <span class="country-bar"><span class="country-bar-fill" style="--w: {{ c.count }}"></span></span>
+        <span class="country-count mono">{{ c.count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-note mono">No geolocated leads yet — launch a run with LLM enrichment.</div>
+    {% endif %}
   </div>
 
-</section>
-
-<section class="panel panel-workers reveal">
-  <div class="panel-head">
-    <h2 class="panel-title">Workers</h2>
-    <div class="panel-sub mono">coordinated pipeline · no duplicate work</div>
-  </div>
-  <div class="workers-grid" id="workers-grid">
-    <div class="worker-placeholder mono">Waiting for run…</div>
-  </div>
 </section>
 
 <section class="grid-2 reveal">
   <div class="panel">
     <div class="panel-head">
-      <h2 class="panel-title">Top leads</h2>
-      <div class="panel-sub mono"><span id="leads-count">0</span> shown · scored</div>
+      <h2 class="panel-title">Top prospects</h2>
+      <div class="panel-sub mono">best LLM score</div>
     </div>
-    <div class="leads-wrap">
-      <table class="leads-table" id="leads-table">
-        <thead>
-          <tr>
-            <th>Score</th><th>Name</th><th>Role</th><th>Company</th><th>Email</th><th>LinkedIn</th>
-          </tr>
-        </thead>
-        <tbody id="leads-body">
-          <tr class="empty"><td colspan="6" class="mono">No leads yet. Start a run.</td></tr>
-        </tbody>
-      </table>
-    </div>
+    {% if top_leads %}
+    <ul class="lead-cards">
+      {% for l in top_leads %}
+      <li class="lead-card">
+        <div class="lead-card-head">
+          <div class="lead-card-name">{{ l.name }}</div>
+          <div class="lead-card-score mono">{{ l.llm_score|floatformat:0 }}</div>
+        </div>
+        <div class="lead-card-role">{{ l.role }}{% if l.company %} · <span class="lead-card-company">{{ l.company }}</span>{% endif %}</div>
+        {% if l.company_description %}<div class="lead-card-desc">{{ l.company_description }}</div>{% endif %}
+        <div class="lead-card-meta mono">
+          {% if l.seniority %}<span class="chip chip-{{ l.seniority }}">{{ l.seniority }}</span>{% endif %}
+          {% if l.country %}<span class="chip">{{ l.country }}</span>{% endif %}
+          {% if l.fund_size %}<span class="chip">{{ l.fund_size }}</span>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-note mono">No scored leads yet.</div>
+    {% endif %}
   </div>
 
   <div class="panel">
     <div class="panel-head">
-      <h2 class="panel-title">Breakdown</h2>
-      <div class="panel-sub mono">sources · engines · roles</div>
+      <h2 class="panel-title">Agenda</h2>
+      <div class="panel-sub mono">your tasks · what's next</div>
     </div>
-    <div class="breakdown">
-      <div class="bd-col">
-        <div class="bd-title mono">By role</div>
-        <ul class="bd-list" id="bd-roles"></ul>
+    <div class="agenda-split">
+      <div class="agenda-col">
+        <div class="agenda-title mono">My open tasks</div>
+        {% if my_open_tasks %}
+        <ul class="agenda-list">
+          {% for t in my_open_tasks %}
+          <li>
+            <a href="{% url 'task_detail' t.id %}">
+              <span class="agenda-bullet tag tag-{{ t.status }}"></span>
+              <span class="agenda-task-title">{{ t.title }}</span>
+            </a>
+            {% if t.end_date %}<span class="agenda-date mono">{{ t.end_date|date:"M d" }}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-note mono">Nothing in flight.</div>
+        {% endif %}
       </div>
-      <div class="bd-col">
-        <div class="bd-title mono">By engine</div>
-        <ul class="bd-list" id="bd-engines"></ul>
-      </div>
-      <div class="bd-col">
-        <div class="bd-title mono">By source</div>
-        <ul class="bd-list" id="bd-sources"></ul>
+      <div class="agenda-col">
+        <div class="agenda-title mono">Coming up</div>
+        {% if upcoming_tasks %}
+        <ul class="agenda-list">
+          {% for t in upcoming_tasks %}
+          <li>
+            <a href="{% url 'task_detail' t.id %}">
+              <span class="agenda-bullet tag tag-{{ t.status }}"></span>
+              <span class="agenda-task-title">{{ t.title }}</span>
+            </a>
+            <span class="agenda-date mono">{{ t.start_date|date:"M d" }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-note mono">Nothing scheduled.</div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -169,19 +184,18 @@
 <section class="panel reveal">
   <div class="panel-head">
     <h2 class="panel-title">Recent runs</h2>
-    <div class="panel-sub mono">last 10</div>
+    <div class="panel-sub mono">latest 5 · jump into console for detail</div>
   </div>
   <div class="leads-wrap">
     <table class="leads-table">
       <thead>
-        <tr><th>ID</th><th>Started</th><th>Finished</th><th>Queries</th><th>People</th><th>Leads</th><th>Status</th><th>Export</th></tr>
+        <tr><th>ID</th><th>Started</th><th>Queries</th><th>People</th><th>Leads</th><th>Status</th><th>Export</th></tr>
       </thead>
       <tbody>
         {% for r in recent_runs %}
         <tr>
           <td class="mono">{{ r.run_id|slice:":8" }}</td>
           <td class="mono">{{ r.started_at|date:"Y-m-d H:i" }}</td>
-          <td class="mono">{% if r.finished_at %}{{ r.finished_at|date:"H:i" }}{% else %}—{% endif %}</td>
           <td>{{ r.queries_total }}</td>
           <td>{{ r.people_unique }}</td>
           <td>{{ r.leads_final }}</td>
@@ -192,7 +206,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr class="empty"><td colspan="8" class="mono">No runs yet.</td></tr>
+        <tr class="empty"><td colspan="7" class="mono">No runs yet — launch one from the console.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -205,5 +219,4 @@
 <script>
   window.HQ_CSRF = "{{ csrf_token }}";
 </script>
-<script src="{% static 'hq/js/app.js' %}" defer></script>
 {% endblock %}

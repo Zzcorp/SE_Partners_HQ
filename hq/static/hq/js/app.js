@@ -37,8 +37,12 @@
     }, 1000);
   }
 
-  // only dashboard beyond this point
-  if (!document.body.classList.contains("page-dashboard")) return;
+  // Connection pill: hide on non-console pages (no live run feed there)
+  if (!document.body.classList.contains("page-console")) {
+    const pill = document.getElementById("connection-pill");
+    if (pill) pill.style.display = "none";
+    return;
+  }
 
   // ---------- state ----------
   const state = {
@@ -176,22 +180,31 @@
   const renderLeads = (leads) => {
     state.leads = leads || [];
     if (!state.leads.length) {
-      els.leadsBody.innerHTML = `<tr class="empty"><td colspan="6" class="mono">No leads yet. Start a run.</td></tr>`;
+      els.leadsBody.innerHTML = `<tr class="empty"><td colspan="7" class="mono">No leads yet. Launch a run.</td></tr>`;
       els.leadsCount.textContent = "0";
       return;
     }
     els.leadsBody.innerHTML = state.leads.slice(0, 50).map((l) => {
       const email = (l.emails && l.emails[0]) || (l.email_candidates && l.email_candidates[0]) || "—";
-      const linkedin = l.linkedin ? `<a href="${escapeAttr(l.linkedin)}" target="_blank" rel="noopener">view</a>` : "—";
       const score = typeof l.lead_score === "number" ? l.lead_score.toFixed(2) : "—";
+      const llm = (typeof l.llm_score === "number") ? Math.round(l.llm_score) : "—";
+      const llmClass = (typeof l.llm_score === "number")
+        ? (l.llm_score >= 80 ? "hi" : l.llm_score >= 50 ? "mid" : "lo") : "na";
+      const geo = l.country
+        ? `<span class="chip mono">${escapeHtml(l.country)}</span>${l.city ? ` <span class="lead-city">${escapeHtml(l.city)}</span>` : ""}`
+        : "—";
+      const company = l.company_description
+        ? `<span title="${escapeAttr(l.company_description)}">${escapeHtml(l.company || "—")}</span>`
+        : escapeHtml(l.company || "—");
       return `
         <tr>
           <td><span class="score-pill">${score}</span></td>
+          <td><span class="llm-pill llm-${llmClass}">${llm}</span></td>
           <td>${escapeHtml(l.name || "")}</td>
           <td>${escapeHtml(l.role || "")}</td>
-          <td>${escapeHtml(l.company || "")}</td>
+          <td>${company}</td>
+          <td>${geo}</td>
           <td class="mono">${escapeHtml(email)}</td>
-          <td>${linkedin}</td>
         </tr>
       `;
     }).join("");
@@ -298,6 +311,7 @@
       const row = evt.person || {};
       upsertLead(row);
       renderLeads(state.leads);
+      window.dispatchEvent(new CustomEvent("hq:person", { detail: row }));
       return;
     }
     if (t === "log") {
@@ -309,6 +323,7 @@
     if (t === "done") {
       setRunState(false, "idle");
       appendLog("system", `Run finished · ${evt.run_id || ""}`);
+      window.dispatchEvent(new CustomEvent("hq:run-done", { detail: { run_id: evt.run_id } }));
       return;
     }
     if (t === "error") {
@@ -321,6 +336,30 @@
 
   // ---------- controls ----------
   const selected = (sel) => Array.from(sel.selectedOptions).map((o) => o.value);
+
+  // Presets: scout / sweep / deep
+  const PRESETS = {
+    scout: { min_priority: 7, max_results_per_query: 6,  fetch_workers: 2, extract_workers: 2, enrich_workers: 1 },
+    sweep: { min_priority: 5, max_results_per_query: 10, fetch_workers: 3, extract_workers: 2, enrich_workers: 2 },
+    deep:  { min_priority: 3, max_results_per_query: 20, fetch_workers: 5, extract_workers: 3, enrich_workers: 3 },
+  };
+  let activePreset = "scout";
+  $$(".preset").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activePreset = btn.dataset.preset || "scout";
+      $$(".preset").forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-checked", on ? "true" : "false");
+      });
+      const p = PRESETS[activePreset] || PRESETS.sweep;
+      if ($("#f-min-priority")) $("#f-min-priority").value = p.min_priority;
+      if ($("#f-max-results")) $("#f-max-results").value = p.max_results_per_query;
+      if ($("#f-fetch-workers")) $("#f-fetch-workers").value = p.fetch_workers;
+      if ($("#f-extract-workers")) $("#f-extract-workers").value = p.extract_workers;
+      if ($("#f-enrich-workers")) $("#f-enrich-workers").value = p.enrich_workers;
+    });
+  });
 
   $("#start-form").addEventListener("submit", async (e) => {
     e.preventDefault();

@@ -47,6 +47,45 @@ class LLMPerson(BaseModel):
     role: str = Field(..., description="Rôle tel que mentionné (Partner, Managing Partner, etc.)")
     company: Optional[str] = Field(None, description="Nom du fonds / société")
     evidence: str = Field(..., description="Phrase exacte de la source qui prouve le rôle")
+    # --- Enrichment -----------------------------------------------------
+    country_iso2: Optional[str] = Field(
+        None,
+        description=(
+            "ISO 3166-1 alpha-2 code of the person's office (e.g. 'FR', 'US', 'SG'). "
+            "Null if not deducible from the source."
+        ),
+    )
+    city: Optional[str] = Field(None, description="City of the person's office, if stated")
+    company_description: Optional[str] = Field(
+        None,
+        description=(
+            "One-sentence description of the employer: what the firm does, AUM if given, "
+            "flagship strategy, geography. 200 chars max. Null if not inferable."
+        ),
+    )
+    seniority: Optional[str] = Field(
+        None,
+        description=(
+            "One of: founder, exec, senior, mid, junior. "
+            "'exec' = C-level / Managing Partner. 'senior' = Partner / Director / Head of. "
+            "'mid' = Principal / Investment Manager. 'junior' = Associate / Analyst. "
+            "'founder' = founder or co-founder of the firm."
+        ),
+    )
+    llm_score: Optional[int] = Field(
+        None,
+        description=(
+            "Integer 0-100 scoring how strong this individual is as a prospect for "
+            "S&E Partners (data-broker / BD intelligence services). "
+            "Consider: seniority, firm AUM, active fund-raising, decision-making authority, "
+            "fit with GP/LP prospecting. 100 = ideal prospect."
+        ),
+        ge=0, le=100,
+    )
+    llm_score_reasoning: Optional[str] = Field(
+        None,
+        description="One short sentence (<=160 chars) justifying the llm_score. Factual, no fluff.",
+    )
 
 
 class LLMExtraction(BaseModel):
@@ -102,6 +141,22 @@ RÈGLES STRICTES :
    ou null : first close, second close, final close, raising, launched.
 8. Si aucune personne pertinente → retourner une liste `people` vide (ne pas \
    inventer).
+
+ENRICHISSEMENT (pour chaque personne retenue) :
+- `country_iso2` : code ISO 3166-1 alpha-2 du bureau de la personne (FR, US, GB, SG, \
+  AE, DE, HK, CN, JP, etc.). Déduire du contexte (ville, adresse, langue, géographie \
+  du fonds). Si pas déductible → null.
+- `city` : ville du bureau ("Paris", "Singapore", "London"). Null si inconnue.
+- `company_description` : UNE phrase (~150 chars) décrivant la société \
+  employeuse : stratégie principale, AUM si mentionnée, focus géographique. \
+  Factuel, pas de superlatifs. Null si la société n'est pas identifiable.
+- `seniority` : exactement l'une de ces valeurs selon le rôle (founder, exec, \
+  senior, mid, junior).
+- `llm_score` : entier 0-100 évaluant la qualité du prospect du point de vue \
+  S&E Partners (data broker / intelligence BD). Critères : séniorité, AUM du \
+  fonds, fundraising actif, autorité de décision, qualité de fit GP/LP.
+- `llm_score_reasoning` : UNE phrase (<=160 chars) justifiant le score. \
+  Factuel, concret, sans formule creuse.
 
 Répondre UNIQUEMENT au format JSON conforme au schéma demandé.\
 """
@@ -221,5 +276,12 @@ def llm_to_common(
             "source_url": source_url,
             "source_title": source_title,
             "source": "llm",
+            # Enrichment
+            "country": (p.country_iso2 or "").upper()[:2],
+            "city": p.city or "",
+            "company_description": p.company_description or "",
+            "seniority": (p.seniority or "").lower()[:16],
+            "llm_score": p.llm_score,
+            "llm_score_reasoning": p.llm_score_reasoning or "",
         })
     return rows

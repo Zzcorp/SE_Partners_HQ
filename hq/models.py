@@ -51,6 +51,14 @@ class ScrapeRun(models.Model):
 
 
 class Lead(models.Model):
+    SENIORITY_CHOICES = [
+        ("founder", "Founder"),
+        ("exec", "Executive"),
+        ("senior", "Senior"),
+        ("mid", "Mid"),
+        ("junior", "Junior"),
+    ]
+
     run = models.ForeignKey(
         ScrapeRun, related_name="leads", on_delete=models.CASCADE,
     )
@@ -72,8 +80,26 @@ class Lead(models.Model):
     data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # --- Geo --------------------------------------------------------
+    country = models.CharField(max_length=2, blank=True, default="", db_index=True)  # ISO 3166-1 alpha-2
+    city = models.CharField(max_length=120, blank=True, default="")
+    lat = models.FloatField(null=True, blank=True)
+    lng = models.FloatField(null=True, blank=True)
+
+    # --- LLM enrichment --------------------------------------------
+    company_description = models.TextField(blank=True, default="", max_length=1200)
+    llm_score = models.FloatField(null=True, blank=True, db_index=True)
+    llm_score_reasoning = models.TextField(blank=True, default="", max_length=800)
+    seniority = models.CharField(
+        max_length=16, blank=True, default="", choices=SENIORITY_CHOICES,
+    )
+
     class Meta:
         ordering = ["-lead_score"]
+        indexes = [
+            models.Index(fields=["country", "-lead_score"]),
+            models.Index(fields=["-created_at"]),
+        ]
 
 
 # -----------------------------------------------------------------------

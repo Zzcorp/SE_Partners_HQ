@@ -39,7 +39,7 @@ MIDDLEWARE = [
 ]
 
 LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/console/"
+LOGIN_REDIRECT_URL = "/dashboard/"
 LOGOUT_REDIRECT_URL = "/"
 AUTH_USER_MODEL = "auth.User"
 

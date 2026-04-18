@@ -10,7 +10,7 @@ from asgiref.sync import async_to_sync
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Count, Sum
+from django.db.models import Avg, Count, Max, Sum
 from django.http import (
     Http404, HttpResponse, HttpResponseRedirect, JsonResponse, StreamingHttpResponse,
 )
@@ -20,6 +20,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
+from hq.geo import COUNTRY_CENTROIDS, country_name
 from hq.job_manager import manager
 from hq.models import (
     Comment, ContactMessage, Lead, ScrapeRun, Task, TaskLike, TaskVote, UserProfile,
@@ -125,13 +126,88 @@ def contact_submit(request):
 
 
 # -----------------------------------------------------------------------
-# Dashboard
+# Dashboard (summary view) — `/dashboard/`
 # -----------------------------------------------------------------------
 @require_GET
 @login_required
 def dashboard(request):
-    recent = ScrapeRun.objects.all()[:10]
+    now = timezone.now()
+    week_ago = now - timedelta(days=7)
+
+    leads_qs = Lead.objects.all()
+    runs_qs = ScrapeRun.objects.all()
+
+    total_leads = leads_qs.count()
+    leads_this_week = leads_qs.filter(created_at__gte=week_ago).count()
+    total_runs = runs_qs.count()
+    last_run = runs_qs.order_by("-started_at").first()
+
+    avg_llm = leads_qs.exclude(llm_score__isnull=True).aggregate(v=Avg("llm_score"))["v"] or 0
+    high_value = leads_qs.filter(llm_score__gte=80).count()
+
+    countries_hit = (
+        leads_qs.exclude(country="")
+        .values("country")
+        .annotate(n=Count("id"))
+        .order_by("-n")[:8]
+    )
+    countries_hit = [
+        {"iso2": c["country"], "name": country_name(c["country"]), "count": c["n"]}
+        for c in countries_hit
+    ]
+
+    top_leads = (
+        leads_qs.exclude(llm_score__isnull=True)
+        .order_by("-llm_score", "-lead_score")[:6]
+    )
+
+    recent_runs = runs_qs.order_by("-started_at")[:5]
+
+    # User's tasks / calendar preview
+    upcoming_tasks = (
+        Task.objects.filter(start_date__gte=now.date())
+        .exclude(status="archived")
+        .order_by("start_date")[:5]
+    )
+    my_open_tasks = (
+        Task.objects.filter(status__in=["open", "in_progress"])
+        .filter(author=request.user)
+        .order_by("-updated_at")[:5]
+    )
+
+    # Access summary (what this user can use)
+    access = {
+        "scrape_categories": len(list_categories()),
+        "platform_groups": len(PLATFORM_GROUP_NAMES),
+        "llm_enabled": _llm_enabled(),
+        "team_count": User.objects.count(),
+    }
+
     return render(request, "hq/dashboard.html", {
+        "now": now,
+        "total_leads": total_leads,
+        "leads_this_week": leads_this_week,
+        "total_runs": total_runs,
+        "last_run": last_run,
+        "avg_llm": round(avg_llm or 0, 1),
+        "high_value": high_value,
+        "countries_hit": countries_hit,
+        "top_leads": top_leads,
+        "recent_runs": recent_runs,
+        "upcoming_tasks": upcoming_tasks,
+        "my_open_tasks": my_open_tasks,
+        "access": access,
+    })
+
+
+# -----------------------------------------------------------------------
+# Console (launcher + map + live log) — `/console/`
+# -----------------------------------------------------------------------
+@require_GET
+@login_required
+def console_view(request):
+    recent = ScrapeRun.objects.all()[:10]
+    return render(request, "hq/console.html", {
         "categories": list_categories(),
         "platform_groups": sorted(PLATFORM_GROUP_NAMES),
         "recent_runs": recent,
@@ -552,6 +628,81 @@ def api_runs(request):
         "status": r.status,
     } for r in qs]
     return JsonResponse({"runs": data})
+
+
+@require_GET
+@login_required
+def api_leads_geo(request):
+    """Return geo-located leads + per-country aggregates for the world map."""
+    try:
+        limit = max(1, min(int(request.GET.get("limit") or 600), 2000))
+    except ValueError:
+        limit = 600
+
+    run_id = (request.GET.get("run_id") or "").strip()
+    qs = Lead.objects.all()
+    if run_id:
+        qs = qs.filter(run__run_id=run_id)
+
+    # Points (only leads we can place on the map)
+    points_qs = (
+        qs.exclude(lat__isnull=True)
+        .exclude(lng__isnull=True)
+        .order_by("-llm_score", "-lead_score")[:limit]
+    )
+    points = [{
+        "id": l.id,
+        "name": l.name,
+        "role": l.role,
+        "company": l.company,
+        "country": l.country,
+        "country_name": country_name(l.country),
+        "city": l.city,
+        "lat": l.lat,
+        "lng": l.lng,
+        "lead_score": round(l.lead_score or 0, 2),
+        "llm_score": l.llm_score,
+        "llm_score_reasoning": l.llm_score_reasoning,
+        "company_description": l.company_description,
+        "seniority": l.seniority,
+        "fund_size": l.fund_size,
+        "fund_close_step": l.fund_close_step,
+        "source_url": l.source_url,
+    } for l in points_qs]
+
+    # Per-country aggregates
+    agg = (
+        qs.exclude(country="")
+        .values("country")
+        .annotate(
+            count=Count("id"),
+            avg_llm=Avg("llm_score"),
+            top_llm=Max("llm_score"),
+            avg_lead=Avg("lead_score"),
+        )
+        .order_by("-count")
+    )
+    countries = []
+    for a in agg:
+        iso2 = a["country"]
+        centroid = COUNTRY_CENTROIDS.get(iso2.upper())
+        countries.append({
+            "iso2": iso2,
+            "name": country_name(iso2),
+            "count": a["count"],
+            "avg_llm": round(a["avg_llm"] or 0, 1) if a["avg_llm"] is not None else None,
+            "top_llm": a["top_llm"],
+            "avg_lead": round(a["avg_lead"] or 0, 2) if a["avg_lead"] is not None else None,
+            "lat": centroid[0] if centroid else None,
+            "lng": centroid[1] if centroid else None,
+        })
+
+    return JsonResponse({
+        "points": points,
+        "countries": countries,
+        "total": qs.count(),
+        "placed": len(points),
+    })
 
 
 # -----------------------------------------------------------------------
