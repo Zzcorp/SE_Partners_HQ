@@ -778,38 +778,355 @@
 
   connect();
 
-  // ---------- launcher ----------
-  const selected = (sel) => Array.from(sel.selectedOptions).map((o) => o.value);
-
+  // ---------- launcher v2 ----------
   const PRESETS = {
-    scout:     { min_priority: 7, max_results_per_query: 6,  fetch_workers: 2, extract_workers: 1, enrich_workers: 1 },
-    sweep:     { min_priority: 5, max_results_per_query: 10, fetch_workers: 3, extract_workers: 2, enrich_workers: 2 },
-    deep:      { min_priority: 3, max_results_per_query: 18, fetch_workers: 5, extract_workers: 3, enrich_workers: 3 },
-    sovereign: { min_priority: 2, max_results_per_query: 25, fetch_workers: 9, extract_workers: 6, enrich_workers: 5 },
+    scout:     { min_priority: 7, max_results_per_query: 6,  fetch_workers: 2, extract_workers: 1, enrich_workers: 1, eta: "~5 min",  leads: "~30" },
+    sweep:     { min_priority: 5, max_results_per_query: 10, fetch_workers: 3, extract_workers: 2, enrich_workers: 2, eta: "~15 min", leads: "~120" },
+    deep:      { min_priority: 3, max_results_per_query: 18, fetch_workers: 5, extract_workers: 3, enrich_workers: 3, eta: "~45 min", leads: "~350" },
+    sovereign: { min_priority: 2, max_results_per_query: 25, fetch_workers: 9, extract_workers: 6, enrich_workers: 5, eta: "~2 h",    leads: "~900" },
   };
+
+  // Category grouping for filter shortcuts — derived from queries.py category keys
+  const CAT_GROUP = {
+    gp_new_funds:              "gp",
+    gp_active_fundraising:     "gp",
+    gp_fund_steps:             "gp",
+    gp_discrete:               "gp",
+    lp_recent_investments:     "lp",
+    lp_strategic_moves:        "lp",
+    lp_family_offices:         "lp",
+    hybrid_gp_lp:              "hybrid",
+    geo_sea:                   "geo",
+    geo_eu_asia:               "geo",
+    weak_business:             "signal",
+    weak_pressure:             "signal",
+    ticket_position:           "signal",
+    fund_size:                 "signal",
+    platform_linkedin:         "platform",
+    platform_crunchbase:       "platform",
+    platform_databases:        "platform",
+    platform_press:            "platform",
+    platform_regulatory:       "platform",
+    bonus_timing:              "bonus",
+  };
+  const CAT_LABEL = {
+    gp_new_funds: "GP · new funds",
+    gp_active_fundraising: "GP · active fundraise",
+    gp_fund_steps: "GP · fund steps",
+    gp_discrete: "GP · discrete",
+    lp_recent_investments: "LP · recent invests",
+    lp_strategic_moves: "LP · strategic moves",
+    lp_family_offices: "LP · family offices",
+    hybrid_gp_lp: "Hybrid GP/LP",
+    geo_sea: "Geo · SEA",
+    geo_eu_asia: "Geo · EU–Asia",
+    weak_business: "Signal · weak biz",
+    weak_pressure: "Signal · pressure",
+    ticket_position: "Signal · ticket",
+    fund_size: "Signal · fund size",
+    platform_linkedin: "Platform · LinkedIn",
+    platform_crunchbase: "Platform · Crunchbase",
+    platform_databases: "Platform · databases",
+    platform_press: "Platform · press",
+    platform_regulatory: "Platform · regulatory",
+    bonus_timing: "Bonus · timing",
+  };
+
+  // Decorate category chips with group + human label
+  $$(".cat-chip").forEach((chip) => {
+    const cat = chip.dataset.cat || "";
+    const grp = CAT_GROUP[cat];
+    if (grp) chip.dataset.group = grp;
+    const lbl = chip.querySelector(".cat-chip-label");
+    if (lbl && CAT_LABEL[cat]) lbl.textContent = CAT_LABEL[cat];
+  });
+
+  const els2 = {
+    presetCards: $$(".preset-card"),
+    catChips: $$(".cat-chip"),
+    focusSummary: $("#focus-summary"),
+    geoChips: $$(".geo-chip"),
+    geoFree: $("#f-geo-free"),
+    recencySteps: $$(".rstep"),
+    recencyHidden: $("#f-recency"),
+    recencyVal: $("#f-recency-val"),
+    minPri: $("#f-min-priority"), minPriVal: $("#f-min-priority-val"),
+    maxRes: $("#f-max-results"),  maxResVal: $("#f-max-results-val"),
+    fetchW: $("#f-fetch-workers"), fetchWVal: $("#f-fetch-workers-val"),
+    extractW: $("#f-extract-workers"), extractWVal: $("#f-extract-workers-val"),
+    enrichW: $("#f-enrich-workers"), enrichWVal: $("#f-enrich-workers-val"),
+    // summary pills
+    sumPreset: $("#lsum-preset"), sumCats: $("#lsum-cats"),
+    sumGeo: $("#lsum-geo"), sumStrict: $("#lsum-strict"),
+    sumRecency: $("#lsum-recency"), sumWorkers: $("#lsum-workers"),
+    sumEta: $("#lsum-eta"),
+    btnResetLauncher: $("#btn-reset-launcher"),
+    advanced: $("#launcher-advanced"),
+  };
+
   let activePreset = "scout";
-  const applyPreset = (name) => {
-    const p = PRESETS[name] || PRESETS.scout;
-    const set = (id, v) => { const el = $(id); if (el) el.value = v; };
-    set("#f-min-priority", p.min_priority);
-    set("#f-max-results", p.max_results_per_query);
-    set("#f-fetch-workers", p.fetch_workers);
-    set("#f-extract-workers", p.extract_workers);
-    set("#f-enrich-workers", p.enrich_workers);
-    activePreset = name;
+  let presetLock = false; // user has manually tuned → custom mode
+
+  const bumpPill = (el) => {
+    if (!el) return;
+    const pill = el.closest(".lsum-pill");
+    if (!pill) return;
+    pill.classList.remove("is-bump");
+    void pill.offsetWidth;
+    pill.classList.add("is-bump");
+    setTimeout(() => pill.classList.remove("is-bump"), 700);
   };
-  applyPreset("scout");
-  $$(".preset").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const name = btn.dataset.preset || "scout";
-      $$(".preset").forEach((b) => {
-        const on = b === btn;
-        b.classList.toggle("is-active", on);
-        b.setAttribute("aria-checked", on ? "true" : "false");
-      });
-      applyPreset(name);
+  const bumpDial = (el) => {
+    if (!el) return;
+    el.classList.remove("is-bump");
+    void el.offsetWidth;
+    el.classList.add("is-bump");
+    setTimeout(() => el.classList.remove("is-bump"), 260);
+  };
+
+  const writeVal = (input, valEl, fmt = (v) => v) => {
+    if (input && valEl) {
+      valEl.textContent = fmt(input.value);
+      bumpDial(valEl);
+    }
+  };
+
+  const syncCanonicalSelect = () => {
+    const sel = $("#f-categories");
+    if (!sel) return;
+    const on = new Set(els2.catChips.filter((c) => c.classList.contains("is-on")).map((c) => c.dataset.cat));
+    Array.from(sel.options).forEach((opt) => { opt.selected = on.has(opt.value); });
+  };
+
+  const activeCategories = () =>
+    els2.catChips.filter((c) => c.classList.contains("is-on")).map((c) => c.dataset.cat);
+
+  const activeGeos = () => {
+    const chips = els2.geoChips.filter((c) => c.classList.contains("is-on")).map((c) => c.dataset.geo);
+    const free = (els2.geoFree?.value || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+    return [...chips, ...free];
+  };
+
+  const setPresetActive = (name, opts = {}) => {
+    activePreset = name;
+    els2.presetCards.forEach((c) => {
+      const on = c.dataset.preset === name;
+      c.classList.toggle("is-active", on);
+      c.setAttribute("aria-checked", on ? "true" : "false");
+      if (on && !opts.silent) {
+        c.classList.remove("just-picked");
+        void c.offsetWidth;
+        c.classList.add("just-picked");
+      }
+    });
+  };
+
+  const applyPreset = (name, opts = {}) => {
+    if (name === "custom") {
+      setPresetActive("custom", opts);
+      presetLock = true;
+      refreshSummary();
+      return;
+    }
+    const p = PRESETS[name];
+    if (!p) return;
+    presetLock = false;
+    setPresetActive(name, opts);
+    if (els2.minPri) { els2.minPri.value = p.min_priority; writeVal(els2.minPri, els2.minPriVal); }
+    if (els2.maxRes) { els2.maxRes.value = p.max_results_per_query; writeVal(els2.maxRes, els2.maxResVal); }
+    if (els2.fetchW) { els2.fetchW.value = p.fetch_workers; writeVal(els2.fetchW, els2.fetchWVal); }
+    if (els2.extractW) { els2.extractW.value = p.extract_workers; writeVal(els2.extractW, els2.extractWVal); }
+    if (els2.enrichW) { els2.enrichW.value = p.enrich_workers; writeVal(els2.enrichW, els2.enrichWVal); }
+    refreshSummary();
+  };
+
+  // Manual tuning on any dial → switch into Custom mode
+  const markCustomOnManualEdit = () => {
+    if (activePreset !== "custom") applyPreset("custom", { silent: false });
+  };
+
+  // Bind preset cards
+  els2.presetCards.forEach((card) => {
+    card.addEventListener("click", () => applyPreset(card.dataset.preset));
+  });
+
+  // Bind category chips
+  els2.catChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const next = !chip.classList.contains("is-on");
+      chip.classList.toggle("is-on", next);
+      chip.querySelector("input").checked = next;
+      if (next) {
+        chip.classList.remove("just-on");
+        void chip.offsetWidth;
+        chip.classList.add("just-on");
+      }
+      syncCanonicalSelect();
+      refreshSummary();
     });
   });
+
+  // Focus shortcuts
+  $$("[data-focus-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const act = btn.dataset.focusAction;
+      const applyFn = (fn) => {
+        els2.catChips.forEach((chip) => {
+          const want = fn(chip);
+          chip.classList.toggle("is-on", want);
+          chip.querySelector("input").checked = want;
+        });
+        syncCanonicalSelect();
+        refreshSummary();
+      };
+      if (act === "all") applyFn(() => false);       // "every category" == none selected (empty = every category server-side)
+      else if (act === "clear") applyFn(() => false);
+      else if (act === "gp") applyFn((c) => CAT_GROUP[c.dataset.cat] === "gp");
+      else if (act === "lp") applyFn((c) => CAT_GROUP[c.dataset.cat] === "lp");
+      else if (act === "signals") applyFn((c) => CAT_GROUP[c.dataset.cat] === "signal");
+      else if (act === "platforms") applyFn((c) => CAT_GROUP[c.dataset.cat] === "platform");
+    });
+  });
+
+  // Geo chips
+  els2.geoChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const next = !chip.classList.contains("is-on");
+      chip.classList.toggle("is-on", next);
+      if (next) {
+        chip.classList.remove("just-on");
+        void chip.offsetWidth;
+        chip.classList.add("just-on");
+      }
+      refreshSummary();
+    });
+  });
+  if (els2.geoFree) els2.geoFree.addEventListener("input", refreshSummary);
+
+  // Recency steps
+  els2.recencySteps.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      els2.recencySteps.forEach((b) => b.classList.toggle("is-active", b === btn));
+      const m = parseInt(btn.dataset.recency || "12", 10);
+      if (els2.recencyHidden) els2.recencyHidden.value = m;
+      if (els2.recencyVal) els2.recencyVal.textContent = (m === 0 ? "any" : (m >= 12 ? `${Math.round(m/12*10)/10 === 1 ? "1 y" : `${m/12} y`}` : `${m} mo`));
+      refreshSummary();
+    });
+  });
+
+  // Sliders → display + summary + preset→custom
+  const bindSlider = (input, valEl, fmt) => {
+    if (!input) return;
+    input.addEventListener("input", () => {
+      writeVal(input, valEl, fmt);
+      markCustomOnManualEdit();
+      refreshSummary();
+    });
+    writeVal(input, valEl, fmt);
+  };
+  bindSlider(els2.minPri, els2.minPriVal);
+  bindSlider(els2.maxRes, els2.maxResVal);
+  bindSlider(els2.fetchW, els2.fetchWVal);
+  bindSlider(els2.extractW, els2.extractWVal);
+  bindSlider(els2.enrichW, els2.enrichWVal);
+
+  // Toggle switches → summary refresh
+  ["f-use-llm", "f-team-crawl", "f-email-enrich", "f-recency-required",
+   "f-pdf-only", "f-platforms-only", "f-exclude-platforms"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", refreshSummary);
+  });
+
+  // Reset
+  if (els2.btnResetLauncher) {
+    els2.btnResetLauncher.addEventListener("click", () => {
+      els2.catChips.forEach((c) => { c.classList.remove("is-on"); c.querySelector("input").checked = false; });
+      els2.geoChips.forEach((c) => c.classList.remove("is-on"));
+      if (els2.geoFree) els2.geoFree.value = "";
+      // recency back to 12m
+      els2.recencySteps.forEach((b) => b.classList.toggle("is-active", b.dataset.recency === "12"));
+      if (els2.recencyHidden) els2.recencyHidden.value = 12;
+      if (els2.recencyVal) els2.recencyVal.textContent = "12 mo";
+      // toggles back to defaults
+      const defaults = { "f-use-llm": true, "f-team-crawl": true, "f-email-enrich": true,
+        "f-recency-required": false, "f-pdf-only": false, "f-platforms-only": false, "f-exclude-platforms": false };
+      Object.entries(defaults).forEach(([k, v]) => { const el = document.getElementById(k); if (el) el.checked = v; });
+      applyPreset("scout");
+      syncCanonicalSelect();
+    });
+  }
+
+  // ---------- summary ----------
+  const strictLabel = (n) => {
+    n = +n;
+    if (n <= 3) return `${n} · broad`;
+    if (n <= 6) return `${n} · focused`;
+    if (n <= 8) return `${n} · strict`;
+    return `${n} · surgical`;
+  };
+
+  function refreshSummary() {
+    const cats = activeCategories();
+    const geos = activeGeos();
+    const m = parseInt(els2.recencyHidden?.value || "12", 10);
+    const strict = +els2.minPri?.value || 7;
+    const workers = (+els2.fetchW?.value || 0) + (+els2.extractW?.value || 0) + (+els2.enrichW?.value || 0);
+
+    const prevPreset = els2.sumPreset?.textContent;
+    const prevCats = els2.sumCats?.textContent;
+    const prevGeo = els2.sumGeo?.textContent;
+    const prevStrict = els2.sumStrict?.textContent;
+    const prevRec = els2.sumRecency?.textContent;
+    const prevW = els2.sumWorkers?.textContent;
+    const prevEta = els2.sumEta?.textContent;
+
+    const presetTxt = activePreset;
+    const catsTxt = cats.length ? `${cats.length} focused` : "every category";
+    const geoTxt = geos.length ? geos.join(" · ") : "worldwide";
+    const strictTxt = `${strict} / 10 · ${strictLabel(strict).split(" · ")[1]}`;
+    const recencyTxt = m === 0 ? "any age" : (m >= 12 ? `≤ ${Math.round(m/12*10)/10} y` : `≤ ${m} mo`);
+    const workersTxt = String(workers);
+
+    // ETA — use preset estimate if still locked; else rough estimate from workers + categories
+    let etaTxt;
+    if (!presetLock && PRESETS[activePreset]) {
+      const p = PRESETS[activePreset];
+      etaTxt = `${p.eta} · ${p.leads} leads`;
+    } else {
+      const baseCats = cats.length || 20;
+      const queries = Math.round(baseCats * (12 - strict) * 1.8);
+      const perMin = Math.max(5, workers * 8);
+      const mins = Math.max(2, Math.round(queries / perMin));
+      const leads = Math.round(queries * 0.55);
+      etaTxt = `~${mins} min · ~${leads} leads`;
+    }
+
+    if (els2.sumPreset) els2.sumPreset.textContent = presetTxt;
+    if (els2.sumCats) els2.sumCats.textContent = catsTxt;
+    if (els2.sumGeo) els2.sumGeo.textContent = geoTxt;
+    if (els2.sumStrict) els2.sumStrict.textContent = strictTxt;
+    if (els2.sumRecency) els2.sumRecency.textContent = recencyTxt;
+    if (els2.sumWorkers) els2.sumWorkers.textContent = workersTxt;
+    if (els2.sumEta) els2.sumEta.textContent = etaTxt;
+
+    if (els2.focusSummary) {
+      els2.focusSummary.textContent = cats.length
+        ? `${cats.length} / ${els2.catChips.length} · ${geos.length ? geos.slice(0,3).join(", ") : "worldwide"}`
+        : `every category · ${geos.length ? geos.slice(0,3).join(", ") : "worldwide"}`;
+    }
+
+    if (els2.sumPreset && prevPreset !== presetTxt) bumpPill(els2.sumPreset);
+    if (els2.sumCats && prevCats !== catsTxt) bumpPill(els2.sumCats);
+    if (els2.sumGeo && prevGeo !== geoTxt) bumpPill(els2.sumGeo);
+    if (els2.sumStrict && prevStrict !== strictTxt) bumpPill(els2.sumStrict);
+    if (els2.sumRecency && prevRec !== recencyTxt) bumpPill(els2.sumRecency);
+    if (els2.sumWorkers && prevW !== workersTxt) bumpPill(els2.sumWorkers);
+    if (els2.sumEta && prevEta !== etaTxt) bumpPill(els2.sumEta);
+  }
+
+  // Initial state
+  applyPreset("scout", { silent: true });
+  refreshSummary();
 
   const resetCoverage = () => {
     state.domains.clear(); state.countries.clear(); state.cities.clear();
@@ -838,23 +1155,27 @@
   if (startForm) startForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (state.running) return;
+    const cats = activeCategories();
+    const geos = activeGeos();
     const payload = {
-      categories: selected($("#f-categories")),
-      min_priority: +$("#f-min-priority").value || 5,
-      max_results_per_query: +$("#f-max-results").value || 10,
-      recency_months: +$("#f-recency").value || 12,
-      fetch_workers: +$("#f-fetch-workers").value || 3,
-      extract_workers: +$("#f-extract-workers").value || 2,
-      enrich_workers: +$("#f-enrich-workers").value || 2,
-      use_llm: $("#f-use-llm").checked,
-      use_team_crawl: $("#f-team-crawl").checked,
-      use_email_enrich: $("#f-email-enrich").checked,
-      recency_required: $("#f-recency-required").checked,
-      pdf_only: $("#f-pdf-only").checked,
-      platforms_only: $("#f-platforms-only").checked,
-      exclude_platforms: $("#f-exclude-platforms").checked,
+      categories: cats,
+      geo: geos.length ? geos : undefined,
+      min_priority: +($("#f-min-priority")?.value) || 5,
+      max_results_per_query: +($("#f-max-results")?.value) || 10,
+      recency_months: +($("#f-recency")?.value) || 12,
+      fetch_workers: +($("#f-fetch-workers")?.value) || 3,
+      extract_workers: +($("#f-extract-workers")?.value) || 2,
+      enrich_workers: +($("#f-enrich-workers")?.value) || 2,
+      use_llm: $("#f-use-llm")?.checked ?? true,
+      use_team_crawl: $("#f-team-crawl")?.checked ?? true,
+      use_email_enrich: $("#f-email-enrich")?.checked ?? true,
+      recency_required: $("#f-recency-required")?.checked ?? false,
+      pdf_only: $("#f-pdf-only")?.checked ?? false,
+      platforms_only: $("#f-platforms-only")?.checked ?? false,
+      exclude_platforms: $("#f-exclude-platforms")?.checked ?? false,
     };
     if (!payload.categories.length) delete payload.categories;
+    if (!payload.geo || !payload.geo.length) delete payload.geo;
     resetCoverage();
     setNarration("system", `Starting ${activePreset} run…`);
     setRunState(true, "starting");
@@ -878,6 +1199,17 @@
       appendLog("error", `Network error: ${err.message}`);
       setNarration("error", `Network error: ${err.message}`);
       setRunState(false, "error");
+    }
+  });
+
+  // Keyboard shortcuts: Cmd/Ctrl+Enter to launch · Esc to reset launcher
+  document.addEventListener("keydown", (e) => {
+    const inInput = e.target && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName);
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      if (startForm && !state.running) startForm.requestSubmit();
+    } else if (e.key === "Escape" && !inInput && els2.btnResetLauncher) {
+      els2.btnResetLauncher.click();
     }
   });
 

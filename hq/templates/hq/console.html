@@ -10,89 +10,247 @@
 {% block content %}
 
 <!-- ========= LAUNCH STRIP (pinned) ========= -->
-<section class="launch-strip reveal">
-  <form id="start-form" class="launch-strip-form" autocomplete="off">
-    <div class="launch-main">
-      <div class="launch-eyebrow mono">— prospecting engine · sovereign floor —</div>
-      <h1 class="launch-title">Pick an intensity. <span class="accent">Launch.</span></h1>
+<section class="launch-strip launch-strip-v2 reveal" aria-label="Scraper launcher">
+  <form id="start-form" class="launcher-form" autocomplete="off">
 
-      <div class="preset-row" role="radiogroup" aria-label="Scraping intensity">
-        <button type="button" class="preset is-active" data-preset="scout" role="radio" aria-checked="true">
-          <span class="preset-title">Scout</span>
-          <span class="preset-sub mono">fast · ~5 min · 4 workers</span>
-        </button>
-        <button type="button" class="preset" data-preset="sweep" role="radio" aria-checked="false">
-          <span class="preset-title">Sweep</span>
-          <span class="preset-sub mono">balanced · ~15 min · 7 workers</span>
-        </button>
-        <button type="button" class="preset" data-preset="deep" role="radio" aria-checked="false">
-          <span class="preset-title">Deep</span>
-          <span class="preset-sub mono">thorough · ~45 min · 11 workers</span>
-        </button>
-        <button type="button" class="preset preset-special" data-preset="sovereign" role="radio" aria-checked="false">
-          <span class="preset-title">Sovereign</span>
-          <span class="preset-sub mono">8-core box · max throughput · 20 workers</span>
-        </button>
+    <header class="launcher-head">
+      <div class="launcher-head-left">
+        <div class="launcher-eyebrow mono">— prospecting engine · sovereign floor —</div>
+        <h1 class="launcher-title">Compose a <em>run</em>. <span class="accent">Launch.</span></h1>
+        <p class="launcher-lead">Pick an intensity, narrow the focus, dial in strictness. The summary below mirrors exactly what will execute.</p>
       </div>
-    </div>
-
-    <aside class="launch-side">
-      <label class="field field-wide">
-        <span class="field-label mono">Focus categories <span class="field-hint-inline">(empty = every category)</span></span>
-        <select name="categories" id="f-categories" multiple size="5">
-          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-        </select>
-      </label>
-
-      <div class="launch-actions">
+      <div class="launcher-head-actions">
         <button type="submit" class="btn btn-primary btn-launch" id="btn-start">
           <span class="btn-launch-label">Launch run</span>
-          <span class="btn-launch-arrow">→</span>
+          <span class="btn-launch-arrow" aria-hidden="true">→</span>
         </button>
-        <button type="button" class="btn btn-ghost" id="btn-stop">Stop</button>
+        <button type="button" class="btn btn-ghost btn-reset" id="btn-reset-launcher" title="Reset launcher (Esc)">Reset</button>
+        <button type="button" class="btn btn-ghost" id="btn-stop" title="Stop current run">Stop</button>
         <span class="run-state mono" id="run-state">idle</span>
+        <span class="launcher-shortcut mono" aria-hidden="true">⌘↵ to launch</span>
       </div>
-    </aside>
-  </form>
+    </header>
 
-  <details class="launcher-advanced">
-    <summary class="mono">Advanced tuning</summary>
-    <div class="launcher-row">
-      <label class="field">
-        <span class="field-label mono">Min priority</span>
-        <input type="number" name="min_priority" id="f-min-priority" value="7" min="1" max="10">
-      </label>
-      <label class="field">
-        <span class="field-label mono">Results / query</span>
-        <input type="number" name="max_results_per_query" id="f-max-results" value="6" min="1" max="50">
-      </label>
-      <label class="field">
-        <span class="field-label mono">Recency (m)</span>
-        <input type="number" name="recency_months" id="f-recency" value="12" min="0" max="60">
-      </label>
-      <label class="field">
-        <span class="field-label mono">Fetch workers</span>
-        <input type="number" name="fetch_workers" id="f-fetch-workers" value="2" min="1" max="16">
-      </label>
-      <label class="field">
-        <span class="field-label mono">Extract workers</span>
-        <input type="number" name="extract_workers" id="f-extract-workers" value="1" min="1" max="10">
-      </label>
-      <label class="field">
-        <span class="field-label mono">Enrich workers</span>
-        <input type="number" name="enrich_workers" id="f-enrich-workers" value="1" min="1" max="10">
-      </label>
-    </div>
-    <div class="toggle-grid">
-      <label class="toggle"><input type="checkbox" id="f-use-llm" checked> <span>LLM enrichment</span></label>
-      <label class="toggle"><input type="checkbox" id="f-team-crawl" checked> <span>Team-page crawl</span></label>
-      <label class="toggle"><input type="checkbox" id="f-email-enrich" checked> <span>Email candidates</span></label>
-      <label class="toggle"><input type="checkbox" id="f-recency-required"> <span>Require recent</span></label>
-      <label class="toggle"><input type="checkbox" id="f-pdf-only"> <span>PDFs only</span></label>
-      <label class="toggle"><input type="checkbox" id="f-platforms-only"> <span>Platforms only</span></label>
-      <label class="toggle"><input type="checkbox" id="f-exclude-platforms"> <span>Exclude platforms</span></label>
-    </div>
-  </details>
+    <!-- ===== 1 · PRESET CARDS ===== -->
+    <fieldset class="launcher-block preset-block">
+      <legend class="block-label mono">01 · INTENSITY</legend>
+      <div class="preset-row preset-row-v2" role="radiogroup" aria-label="Scraping intensity">
+        <button type="button" class="preset-card is-active" data-preset="scout" role="radio" aria-checked="true">
+          <span class="pcard-glyph" aria-hidden="true">◔</span>
+          <span class="pcard-name">Scout</span>
+          <span class="pcard-tag mono">fast recon</span>
+          <ul class="pcard-specs mono">
+            <li><b>~5</b> min</li>
+            <li><b>4</b> workers</li>
+            <li>~<b>30</b> leads</li>
+          </ul>
+        </button>
+
+        <button type="button" class="preset-card" data-preset="sweep" role="radio" aria-checked="false">
+          <span class="pcard-glyph" aria-hidden="true">◑</span>
+          <span class="pcard-name">Sweep</span>
+          <span class="pcard-tag mono">balanced</span>
+          <ul class="pcard-specs mono">
+            <li><b>~15</b> min</li>
+            <li><b>7</b> workers</li>
+            <li>~<b>120</b> leads</li>
+          </ul>
+        </button>
+
+        <button type="button" class="preset-card" data-preset="deep" role="radio" aria-checked="false">
+          <span class="pcard-glyph" aria-hidden="true">◕</span>
+          <span class="pcard-name">Deep</span>
+          <span class="pcard-tag mono">thorough dig</span>
+          <ul class="pcard-specs mono">
+            <li><b>~45</b> min</li>
+            <li><b>11</b> workers</li>
+            <li>~<b>350</b> leads</li>
+          </ul>
+        </button>
+
+        <button type="button" class="preset-card preset-special" data-preset="sovereign" role="radio" aria-checked="false">
+          <span class="pcard-glyph" aria-hidden="true">●</span>
+          <span class="pcard-name">Sovereign</span>
+          <span class="pcard-tag mono">8-core · max</span>
+          <ul class="pcard-specs mono">
+            <li><b>~2</b> h</li>
+            <li><b>20</b> workers</li>
+            <li>~<b>900</b> leads</li>
+          </ul>
+        </button>
+
+        <button type="button" class="preset-card preset-custom" data-preset="custom" role="radio" aria-checked="false">
+          <span class="pcard-glyph" aria-hidden="true">✦</span>
+          <span class="pcard-name">Custom</span>
+          <span class="pcard-tag mono">manual dial</span>
+          <ul class="pcard-specs mono">
+            <li>your</li>
+            <li>own</li>
+            <li>tuning</li>
+          </ul>
+        </button>
+      </div>
+    </fieldset>
+
+    <!-- ===== 2 · FOCUS (category chips grouped) ===== -->
+    <fieldset class="launcher-block focus-block">
+      <legend class="block-label mono">02 · FOCUS</legend>
+      <div class="focus-controls mono">
+        <button type="button" class="chipbtn" data-focus-action="all">every category</button>
+        <button type="button" class="chipbtn" data-focus-action="clear">clear</button>
+        <button type="button" class="chipbtn" data-focus-action="gp">GP only</button>
+        <button type="button" class="chipbtn" data-focus-action="lp">LP only</button>
+        <button type="button" class="chipbtn" data-focus-action="signals">weak signals</button>
+        <button type="button" class="chipbtn" data-focus-action="platforms">platforms</button>
+        <span class="focus-summary mono" id="focus-summary">every category · broad sweep</span>
+      </div>
+
+      <div class="focus-groups" id="focus-groups">
+        {% for c in categories %}
+          <label class="cat-chip" data-cat="{{ c }}">
+            <input type="checkbox" value="{{ c }}">
+            <span class="cat-chip-label">{{ c }}</span>
+          </label>
+        {% endfor %}
+      </div>
+
+      <!-- Hidden canonical select so legacy code can still read "f-categories" -->
+      <select name="categories" id="f-categories" multiple hidden aria-hidden="true">
+        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </fieldset>
+
+    <!-- ===== 3 · GEOGRAPHY ===== -->
+    <fieldset class="launcher-block geo-block">
+      <legend class="block-label mono">03 · GEOGRAPHY</legend>
+      <div class="geo-row">
+        <div class="geo-chips" id="geo-chips" role="group" aria-label="Geography hints">
+          <button type="button" class="geo-chip" data-geo="EU">Europe</button>
+          <button type="button" class="geo-chip" data-geo="UK">UK</button>
+          <button type="button" class="geo-chip" data-geo="FR">France</button>
+          <button type="button" class="geo-chip" data-geo="DE">DACH</button>
+          <button type="button" class="geo-chip" data-geo="US">North America</button>
+          <button type="button" class="geo-chip" data-geo="SEA">SEA</button>
+          <button type="button" class="geo-chip" data-geo="MENA">MENA</button>
+          <button type="button" class="geo-chip" data-geo="APAC">APAC</button>
+          <button type="button" class="geo-chip" data-geo="LATAM">LatAm</button>
+          <button type="button" class="geo-chip" data-geo="AFRICA">Africa</button>
+        </div>
+        <input type="text" class="geo-free mono" id="f-geo-free" placeholder="… or freeform: Singapore, Dubai, Zurich"
+               autocomplete="off" spellcheck="false" />
+      </div>
+    </fieldset>
+
+    <!-- ===== 4 · STRICTNESS + DEPTH ===== -->
+    <fieldset class="launcher-block dials-block">
+      <legend class="block-label mono">04 · STRICTNESS &amp; DEPTH</legend>
+      <div class="dials-grid">
+
+        <div class="dial">
+          <div class="dial-head">
+            <span class="dial-name">Signal strictness</span>
+            <span class="dial-value mono" id="f-min-priority-val">7</span>
+          </div>
+          <input type="range" id="f-min-priority" name="min_priority" min="1" max="10" value="7" step="1" class="slider-gold">
+          <div class="dial-scale mono">
+            <span>broad</span><span>focused</span><span>strict</span>
+          </div>
+        </div>
+
+        <div class="dial">
+          <div class="dial-head">
+            <span class="dial-name">Results / query</span>
+            <span class="dial-value mono" id="f-max-results-val">6</span>
+          </div>
+          <input type="range" id="f-max-results" name="max_results_per_query" min="1" max="30" value="6" step="1" class="slider-gold">
+          <div class="dial-scale mono">
+            <span>1</span><span>10</span><span>30</span>
+          </div>
+        </div>
+
+        <div class="dial">
+          <div class="dial-head">
+            <span class="dial-name">Recency window</span>
+            <span class="dial-value mono" id="f-recency-val">12 mo</span>
+          </div>
+          <div class="recency-steps" id="recency-steps" role="group" aria-label="Recency window">
+            <button type="button" class="rstep" data-recency="0">any</button>
+            <button type="button" class="rstep" data-recency="24">2y</button>
+            <button type="button" class="rstep is-active" data-recency="12">12m</button>
+            <button type="button" class="rstep" data-recency="6">6m</button>
+            <button type="button" class="rstep" data-recency="3">3m</button>
+            <button type="button" class="rstep" data-recency="1">1m</button>
+          </div>
+          <input type="hidden" id="f-recency" name="recency_months" value="12">
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- ===== 5 · WORKERS (expert) ===== -->
+    <details class="launcher-advanced" id="launcher-advanced">
+      <summary class="mono">Expert · Worker allocation</summary>
+      <div class="worker-dials">
+        <div class="dial dial-compact">
+          <div class="dial-head"><span class="dial-name">Fetch</span><span class="dial-value mono" id="f-fetch-workers-val">2</span></div>
+          <input type="range" id="f-fetch-workers" name="fetch_workers" min="1" max="16" value="2" step="1" class="slider-gold">
+        </div>
+        <div class="dial dial-compact">
+          <div class="dial-head"><span class="dial-name">Extract</span><span class="dial-value mono" id="f-extract-workers-val">1</span></div>
+          <input type="range" id="f-extract-workers" name="extract_workers" min="1" max="10" value="1" step="1" class="slider-gold">
+        </div>
+        <div class="dial dial-compact">
+          <div class="dial-head"><span class="dial-name">Enrich</span><span class="dial-value mono" id="f-enrich-workers-val">1</span></div>
+          <input type="range" id="f-enrich-workers" name="enrich_workers" min="1" max="10" value="1" step="1" class="slider-gold">
+        </div>
+      </div>
+    </details>
+
+    <!-- ===== 6 · FEATURE TOGGLES ===== -->
+    <fieldset class="launcher-block toggles-block">
+      <legend class="block-label mono">05 · FEATURES</legend>
+      <div class="toggle-grid toggle-grid-v2">
+        <label class="pillswitch" data-icon="✦"><input type="checkbox" id="f-use-llm" checked>
+          <span class="pswitch-track"><span class="pswitch-thumb"></span></span>
+          <span class="pswitch-body"><b>LLM enrichment</b><em>reasoning &amp; scoring</em></span>
+        </label>
+        <label class="pillswitch" data-icon="⎌"><input type="checkbox" id="f-team-crawl" checked>
+          <span class="pswitch-track"><span class="pswitch-thumb"></span></span>
+          <span class="pswitch-body"><b>Team-page crawl</b><em>hunt /team, /about</em></span>
+        </label>
+        <label class="pillswitch" data-icon="✉"><input type="checkbox" id="f-email-enrich" checked>
+          <span class="pswitch-track"><span class="pswitch-thumb"></span></span>
+          <span class="pswitch-body"><b>Email candidates</b><em>pattern-based</em></span>
+        </label>
+        <label class="pillswitch" data-icon="◷"><input type="checkbox" id="f-recency-required">
+          <span class="pswitch-track"><span class="pswitch-thumb"></span></span>
+          <span class="pswitch-body"><b>Require recency</b><em>drop stale pages</em></span>
+        </label>
+        <label class="pillswitch" data-icon="▤"><input type="checkbox" id="f-pdf-only">
+          <span class="pswitch-track"><span class="pswitch-thumb"></span></span>
+          <span class="pswitch-body"><b>PDFs only</b><em>filings &amp; decks</em></span>
+        </label>
+        <label class="pillswitch" data-icon="⊞"><input type="checkbox" id="f-platforms-only">
+          <span class="pswitch-track"><span class="pswitch-thumb"></span></span>
+          <span class="pswitch-body"><b>Platforms only</b><em>LinkedIn, Crunchbase…</em></span>
+        </label>
+        <label class="pillswitch" data-icon="⊠"><input type="checkbox" id="f-exclude-platforms">
+          <span class="pswitch-track"><span class="pswitch-thumb"></span></span>
+          <span class="pswitch-body"><b>Exclude platforms</b><em>first-party only</em></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <!-- ===== LIVE SUMMARY BAR ===== -->
+    <footer class="launcher-summary mono" id="launcher-summary" aria-live="polite">
+      <div class="lsum-pill" data-sum="preset"><span class="lsum-k">preset</span><span class="lsum-v" id="lsum-preset">scout</span></div>
+      <div class="lsum-pill" data-sum="cats"><span class="lsum-k">focus</span><span class="lsum-v" id="lsum-cats">every category</span></div>
+      <div class="lsum-pill" data-sum="geo"><span class="lsum-k">geo</span><span class="lsum-v" id="lsum-geo">worldwide</span></div>
+      <div class="lsum-pill" data-sum="strict"><span class="lsum-k">strict</span><span class="lsum-v" id="lsum-strict">7 / 10</span></div>
+      <div class="lsum-pill" data-sum="recency"><span class="lsum-k">recency</span><span class="lsum-v" id="lsum-recency">≤ 12 mo</span></div>
+      <div class="lsum-pill" data-sum="workers"><span class="lsum-k">workers</span><span class="lsum-v" id="lsum-workers">4</span></div>
+      <div class="lsum-pill" data-sum="eta"><span class="lsum-k">est</span><span class="lsum-v" id="lsum-eta">~5 min · ~30 leads</span></div>
+    </footer>
+  </form>
 </section>
 
 <!-- ========= STATUS RIBBON (always visible across tabs) ========= -->
