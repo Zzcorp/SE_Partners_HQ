@@ -4,7 +4,7 @@ from django.http import HttpResponseRedirect
 from django.urls import resolve, reverse
 
 
-PUBLIC_URL_NAMES = {"login", "logout", "healthz"}
+PUBLIC_URL_NAMES = {"landing", "contact_submit", "login", "logout", "healthz"}
 
 
 class LoginRequiredMiddleware:

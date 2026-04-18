@@ -170,3 +170,30 @@ class TaskVote(models.Model):
 
     class Meta:
         unique_together = [("task", "user")]
+
+
+# -----------------------------------------------------------------------
+# Contact (formulaire public du site vitrine)
+# -----------------------------------------------------------------------
+class ContactMessage(models.Model):
+    INTENT_CHOICES = [
+        ("info", "Information"),
+        ("engagement", "Engagement"),
+        ("partnership", "Partnership"),
+        ("press", "Press"),
+    ]
+    name = models.CharField(max_length=120)
+    email = models.EmailField(max_length=200)
+    company = models.CharField(max_length=200, blank=True, default="")
+    intent = models.CharField(max_length=20, choices=INTENT_CHOICES, default="info")
+    message = models.TextField(max_length=5000)
+    source_ip = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    handled = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["handled", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.name} <{self.email}> — {self.intent}"

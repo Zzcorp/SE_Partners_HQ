@@ -22,7 +22,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from hq.job_manager import manager
 from hq.models import (
-    Comment, Lead, ScrapeRun, Task, TaskLike, TaskVote, UserProfile,
+    Comment, ContactMessage, Lead, ScrapeRun, Task, TaskLike, TaskVote, UserProfile,
 )
 from queries import list_categories, PLATFORM_GROUP_NAMES
 
@@ -72,7 +72,7 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse("login"))
+    return HttpResponseRedirect(reverse("landing"))
 
 
 # -----------------------------------------------------------------------
@@ -80,6 +80,48 @@ def logout_view(request):
 # -----------------------------------------------------------------------
 def healthz(request):
     return HttpResponse("ok", content_type="text/plain")
+
+
+# -----------------------------------------------------------------------
+# Landing (public) + contact
+# -----------------------------------------------------------------------
+def landing_view(request):
+    """Vitrine publique. Les utilisateurs connectés voient toujours la page ;
+    un bouton les ramène à la console."""
+    sent = request.GET.get("sent") == "1"
+    return render(request, "hq/landing.html", {
+        "sent": sent,
+    })
+
+
+@csrf_protect
+@require_POST
+def contact_submit(request):
+    name = (request.POST.get("name") or "").strip()[:120]
+    email = (request.POST.get("email") or "").strip()[:200]
+    company = (request.POST.get("company") or "").strip()[:200]
+    intent = (request.POST.get("intent") or "info").strip()
+    message = (request.POST.get("message") or "").strip()[:5000]
+    honeypot = (request.POST.get("website") or "").strip()
+
+    if honeypot:  # bot caught
+        return HttpResponseRedirect(reverse("landing") + "?sent=1#contact")
+
+    valid_intents = {c[0] for c in ContactMessage.INTENT_CHOICES}
+    if intent not in valid_intents:
+        intent = "info"
+
+    if not (name and email and message and "@" in email):
+        return HttpResponseRedirect(reverse("landing") + "?err=1#contact")
+
+    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    ip = xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR")
+
+    ContactMessage.objects.create(
+        name=name, email=email, company=company,
+        intent=intent, message=message, source_ip=ip or None,
+    )
+    return HttpResponseRedirect(reverse("landing") + "?sent=1#contact")
 
 
 # -----------------------------------------------------------------------
