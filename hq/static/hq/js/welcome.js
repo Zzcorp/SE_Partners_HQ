@@ -66,6 +66,8 @@
       try {
         if (sessionStorage.getItem("hq_intro_seen") === "1") {
           overlay.remove();
+          // Still announce so the landing page can reveal without waiting forever.
+          document.dispatchEvent(new CustomEvent("hq:welcome-closed", { detail: { mode, skipped: true } }));
           return;
         }
         sessionStorage.setItem("hq_intro_seen", "1");
@@ -104,7 +106,7 @@
       setText($greeting, cityLabel ? `${helloWord}, ${cityLabel}.` : `${helloWord}.`);
       setText($eyebrow, `— connecting from ${tz || "the open web"} · ${timeOfDay} —`);
       setText($hint, "initializing intelligence layer…");
-      durationMs = 2600;
+      durationMs = 3800;
       rotate = true;
     } else if (mode === "login") {
       const nm = username ? username.charAt(0).toUpperCase() + username.slice(1) : "";
@@ -148,11 +150,15 @@
       if (closed) return;
       closed = true;
       overlay.dispatchEvent(new CustomEvent("welcome:close"));
+      // Broadcast so pages (landing, dashboard) can sync their reveal timing
+      // with the overlay fade — fires ~at the start of the fade-out.
+      document.dispatchEvent(new CustomEvent("hq:welcome-closing", { detail: { mode } }));
       overlay.classList.remove("is-active");
       overlay.classList.add("is-closing");
       document.documentElement.classList.remove("welcome-lock");
       setTimeout(() => {
         overlay.remove();
+        document.dispatchEvent(new CustomEvent("hq:welcome-closed", { detail: { mode } }));
         if (mode === "dashboard" && location.search.includes("welcome=")) {
           const url = new URL(location.href);
           url.searchParams.delete("welcome");

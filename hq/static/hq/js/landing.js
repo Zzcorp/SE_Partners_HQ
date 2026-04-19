@@ -47,30 +47,52 @@
     document.body.classList.add("lnd-title-split");
   }
 
-  // Flip the hero into its ready state — CSS drives the staggered entrance.
-  requestAnimationFrame(() => {
-    document.documentElement.classList.add("lnd-loaded");
-  });
+  // ----- Defer hero + scroll reveals until the intro overlay has started
+  // closing, so the user actually sees the entrance animation instead of it
+  // playing behind the splash. -------------------------------------------
+  const REVEAL_SELECTOR = "[data-reveal], [data-reveal-stagger], [data-reveal-scale], [data-reveal-shrink], [data-reveal-grow]";
+  const revealTargets = document.querySelectorAll(REVEAL_SELECTOR);
 
-  // ----- Reveal on scroll (single + stagger containers) ------------------
-  const revealTargets = document.querySelectorAll("[data-reveal], [data-reveal-stagger]");
-  if ("IntersectionObserver" in window && revealTargets.length) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const el = entry.target;
-        if (el.hasAttribute("data-reveal-stagger")) {
-          Array.from(el.children).forEach((child, i) => {
-            child.style.setProperty("--i", i);
-          });
-        }
-        el.classList.add("is-in");
-        io.unobserve(el);
-      });
-    }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
-    revealTargets.forEach((el) => io.observe(el));
+  let revealArmed = false;
+  function armReveals() {
+    if (revealArmed) return;
+    revealArmed = true;
+    // Hero enters on this flip
+    document.documentElement.classList.add("lnd-loaded");
+
+    if ("IntersectionObserver" in window && revealTargets.length) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const el = entry.target;
+          if (el.hasAttribute("data-reveal-stagger")) {
+            Array.from(el.children).forEach((child, i) => {
+              child.style.setProperty("--i", i);
+            });
+          }
+          el.classList.add("is-in");
+          io.unobserve(el);
+        });
+      }, { threshold: 0.14, rootMargin: "0px 0px -8% 0px" });
+      revealTargets.forEach((el) => io.observe(el));
+    } else {
+      revealTargets.forEach((el) => el.classList.add("is-in"));
+    }
+  }
+
+  // If an intro overlay is in the DOM, wait for it to start closing before
+  // arming reveals; otherwise fire immediately on the next frame.
+  const introOverlay = document.getElementById("welcome-overlay");
+  const introActive = introOverlay && introOverlay.dataset.welcomeMode === "intro";
+  if (introActive) {
+    // Start hero reveals when the overlay starts fading (not when it's fully gone)
+    // so the two motions overlap gracefully.
+    document.addEventListener("hq:welcome-closing", armReveals, { once: true });
+    document.addEventListener("hq:welcome-closed",  armReveals, { once: true });
+    // Safety: if no event fires within a generous window, reveal anyway.
+    setTimeout(armReveals, 5200);
   } else {
-    revealTargets.forEach((el) => el.classList.add("is-in"));
+    requestAnimationFrame(armReveals);
   }
 
   // ----- Metric counters -------------------------------------------------

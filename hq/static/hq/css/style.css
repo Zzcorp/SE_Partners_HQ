@@ -257,16 +257,93 @@ button { cursor: pointer; }
   box-shadow: 0 0 8px var(--gold-glow);
 }
 
-.topnav { display: flex; gap: 20px; align-items: center; }
+.topnav { display: flex; gap: 22px; align-items: center; }
+
+/* ---- Navlink: text-only, with a soft gold glow dangling behind the letters.
+   No borders, no backgrounds, no rectangle — just a radial halo that eases in
+   and a dangling underline that reaches slightly past the word on both sides. */
 .navlink {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.24em;
   color: var(--ink-dim);
-  padding: 6px 0;
+  padding: 8px 2px 10px;
   position: relative;
+  isolation: isolate;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-decoration: none;
+  transition:
+    color .32s var(--ease-out),
+    letter-spacing .42s var(--ease-out),
+    text-shadow .42s var(--ease-out);
 }
-.navlink:hover { color: var(--gold); }
+.navlink::before,
+.navlink::after { content: ""; position: absolute; pointer-events: none; }
+
+/* ::before → the dangling glow that bleeds past the text */
+.navlink::before {
+  left: 50%;
+  top: 50%;
+  width: 180%;
+  height: 260%;
+  transform: translate(-50%, -50%) scale(0.6);
+  background:
+    radial-gradient(closest-side,
+      rgba(212,175,108,0.55) 0%,
+      rgba(212,175,108,0.22) 28%,
+      rgba(212,175,108,0.08) 55%,
+      transparent 78%);
+  filter: blur(14px);
+  opacity: 0;
+  z-index: -1;
+  transition:
+    opacity .5s var(--ease-out),
+    transform .5s var(--ease-out);
+}
+
+/* ::after → a gradient underline that exceeds the text width from center,
+   scaling outward on hover/active (no hard edges). */
+.navlink::after {
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%) scaleX(0.0);
+  width: 150%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(212,175,108,0.08) 14%,
+    var(--gold) 50%,
+    rgba(212,175,108,0.08) 86%,
+    transparent 100%);
+  filter: blur(0.3px);
+  opacity: 0;
+  transform-origin: 50% 50%;
+  transition:
+    transform .5s var(--ease-out),
+    opacity .4s var(--ease-out),
+    height .3s var(--ease-out),
+    filter .4s var(--ease-out);
+}
+
+.navlink:hover,
+.navlink:focus-visible {
+  color: var(--gold-3);
+  letter-spacing: 0.26em;
+  text-shadow: 0 0 22px rgba(212,175,108,0.35);
+  outline: none;
+}
+.navlink:hover::before,
+.navlink:focus-visible::before {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.navlink:hover::after,
+.navlink:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) scaleX(1);
+}
 
 /* connection pill */
 .pill {
@@ -1012,13 +1089,47 @@ select[multiple] option:checked { background: var(--gold-soft); color: var(--gol
    Nav additions — user chip + active state
    ========================================================================== */
 
+/* Active state: steadier, slightly brighter glow + subtle breathing */
 .navlink.is-active {
   color: var(--gold-3);
-  border-color: var(--panel-border-hi);
-  background: var(--gold-soft);
+  text-shadow: 0 0 26px rgba(212,175,108,0.45);
 }
-.navlink.navlink-ghost { opacity: .75; }
+.navlink.is-active::before {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  background:
+    radial-gradient(closest-side,
+      rgba(212,175,108,0.7) 0%,
+      rgba(212,175,108,0.3) 30%,
+      rgba(212,175,108,0.1) 58%,
+      transparent 80%);
+  animation: navlink-breathe 3.2s var(--ease-out) infinite;
+}
+.navlink.is-active::after {
+  opacity: 1;
+  transform: translateX(-50%) scaleX(1);
+  height: 1.5px;
+  filter: blur(0.6px);
+  animation: navlink-underline-pulse 3.2s var(--ease-out) infinite;
+}
+@keyframes navlink-breathe {
+  0%, 100% { filter: blur(14px); opacity: 1; }
+  50%      { filter: blur(18px); opacity: 0.86; }
+}
+@keyframes navlink-underline-pulse {
+  0%, 100% { transform: translateX(-50%) scaleX(1);    filter: blur(0.6px); }
+  50%      { transform: translateX(-50%) scaleX(1.08); filter: blur(1.2px); }
+}
+
+.navlink.navlink-ghost { opacity: .7; }
 .navlink.navlink-ghost:hover { opacity: 1; }
+.navlink.navlink-ghost::before {
+  background:
+    radial-gradient(closest-side,
+      rgba(255,255,255,0.18) 0%,
+      rgba(255,255,255,0.06) 40%,
+      transparent 78%);
+}
 
 .user-chip {
   display: inline-flex;
@@ -1497,14 +1608,28 @@ textarea.text-input { resize: vertical; min-height: 4.5rem; line-height: 1.5; }
 
 .brand-suffix { letter-spacing: .08em; }
 
+/* CTA variant: same glow language, a touch brighter + steady aura */
 .navlink-cta {
-  border-color: var(--gold);
   color: var(--gold-3);
-  background: linear-gradient(180deg, var(--gold-soft), transparent);
+  text-shadow: 0 0 20px rgba(212,175,108,0.3);
 }
-.navlink-cta:hover {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 30%, transparent), transparent);
+.navlink-cta::before {
+  opacity: 0.55;
+  transform: translate(-50%, -50%) scale(0.9);
+  background:
+    radial-gradient(closest-side,
+      rgba(212,175,108,0.6) 0%,
+      rgba(212,175,108,0.22) 34%,
+      transparent 78%);
+}
+.navlink-cta::after {
+  opacity: 0.7;
+  transform: translateX(-50%) scaleX(0.86);
+}
+.navlink-cta:hover,
+.navlink-cta:focus-visible {
   color: var(--ink-0);
+  text-shadow: 0 0 28px rgba(212,175,108,0.6);
 }
 
 .btn-xl {
@@ -1941,6 +2066,18 @@ textarea.text-input { resize: vertical; min-height: 4.5rem; line-height: 1.5; }
   border-top: 1px solid var(--panel-border);
   border-bottom: 1px solid var(--panel-border);
 }
+.lnd-metrics-rule {
+  max-width: 1240px;
+  height: 1px;
+  margin: 0 auto 1.6rem;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(212,175,108,0.06) 14%,
+    var(--gold) 50%,
+    rgba(212,175,108,0.06) 86%,
+    transparent 100%);
+  filter: blur(0.4px);
+}
 .metric-bar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2072,6 +2209,67 @@ textarea.text-input { resize: vertical; min-height: 4.5rem; line-height: 1.5; }
 [data-reveal].is-in {
   opacity: 1;
   transform: none;
+  filter: blur(0);
+}
+
+/* ----- Extra reveal variants (grow / shrink / scale) -------------------- */
+
+/* Grows in from 0.82 to 1 with a gentle 3D rise + blur clear */
+[data-reveal-scale] {
+  opacity: 0;
+  transform: scale(0.82) translate3d(0, 24px, 0);
+  transform-origin: 50% 80%;
+  filter: blur(12px);
+  transition:
+    opacity 1.2s var(--lnd-ease),
+    transform 1.2s var(--lnd-ease),
+    filter 1.2s var(--lnd-ease);
+  will-change: transform, opacity, filter;
+}
+[data-reveal-scale].is-in {
+  opacity: 1;
+  transform: scale(1) translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+/* Starts oversized (1.18) and settles — used for statements / big numerals */
+[data-reveal-shrink] {
+  opacity: 0;
+  transform: scale(1.18);
+  transform-origin: 50% 50%;
+  filter: blur(14px) brightness(1.2);
+  letter-spacing: 0.01em;
+  transition:
+    opacity 1.3s var(--lnd-ease),
+    transform 1.3s var(--lnd-ease),
+    filter 1.3s var(--lnd-ease),
+    letter-spacing 1.3s var(--lnd-ease);
+  will-change: transform, opacity, filter;
+}
+[data-reveal-shrink].is-in {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0) brightness(1);
+  letter-spacing: 0;
+}
+
+/* Horizontal grow — used for dividers, rules, progress strips */
+[data-reveal-grow] {
+  opacity: 0;
+  transform: scaleX(0.04);
+  transform-origin: 0% 50%;
+  filter: blur(4px);
+  transition:
+    opacity .9s var(--lnd-ease),
+    transform 1.3s var(--lnd-ease),
+    filter .9s var(--lnd-ease);
+  will-change: transform, opacity, filter;
+}
+[data-reveal-grow="center"] { transform-origin: 50% 50%; }
+[data-reveal-grow="right"]  { transform-origin: 100% 50%; }
+[data-reveal-grow].is-in {
+  opacity: 1;
+  transform: scaleX(1);
   filter: blur(0);
 }
 
@@ -2323,7 +2521,8 @@ textarea.text-input { resize: vertical; min-height: 4.5rem; line-height: 1.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal], [data-reveal-stagger] > * {
+  [data-reveal], [data-reveal-stagger] > *,
+  [data-reveal-scale], [data-reveal-shrink], [data-reveal-grow] {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
@@ -5899,4 +6098,292 @@ body.drawer-open { overflow: hidden; }
 @media (max-width: 520px) {
   .btn-new-run .nr-sub { display: none; }
   .ld-scores { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   Stepped login  ·  three-stage sovereign access
+   ========================================================================== */
+
+.page-login .shell {
+  min-height: calc(100vh - 140px);
+  padding: 40px 40px 60px;
+}
+
+/* Card uses flex column so it always fits the viewport height. */
+.login-card.login-card-stepped {
+  width: 100%;
+  max-width: 520px;
+  padding: 44px 44px 36px;
+  max-height: calc(100vh - 160px);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  text-align: left;
+}
+.login-card-stepped .login-head { text-align: center; }
+.login-card-stepped .login-eyebrow { margin-bottom: 18px; }
+.login-card-stepped .login-title { font-size: clamp(26px, 3.2vw, 36px); margin: 0 0 10px; }
+.login-card-stepped .login-sub   { margin: 0; font-size: 13.5px; }
+.login-card-stepped .login-foot  { margin-top: 6px; }
+
+/* ---- Step indicator (3 dots) ---- */
+.login-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  position: relative;
+}
+.login-steps::before {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 13px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,175,108,0.22), transparent);
+  pointer-events: none;
+}
+.login-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-mute);
+  font-size: 9.5px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  transition: color var(--t-med) var(--ease-out);
+}
+.login-step .lsd-n {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(212,175,108,0.18);
+  background: rgba(10,12,18,0.7);
+  color: var(--ink-dim);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  transition:
+    color var(--t-med) var(--ease-out),
+    border-color var(--t-med) var(--ease-out),
+    box-shadow var(--t-med) var(--ease-out),
+    background var(--t-med) var(--ease-out),
+    transform var(--t-med) var(--ease-out);
+}
+.login-step .lsd-l {
+  font-size: 9px;
+  letter-spacing: 0.28em;
+}
+.login-step.is-current { color: var(--gold-3); }
+.login-step.is-current .lsd-n {
+  color: var(--gold-3);
+  border-color: var(--gold);
+  background: radial-gradient(circle at 50% 50%, rgba(212,175,108,0.22), rgba(10,12,18,0.8) 70%);
+  box-shadow:
+    0 0 0 3px rgba(212,175,108,0.08),
+    0 0 18px -2px var(--gold-glow);
+  transform: translateY(-1px);
+}
+.login-step.is-done { color: var(--ink-2); }
+.login-step.is-done .lsd-n {
+  color: var(--gold);
+  border-color: rgba(212,175,108,0.55);
+  background: rgba(212,175,108,0.08);
+}
+.login-step.is-done .lsd-n::before {
+  content: "✓";
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--gold-3);
+}
+.login-step.is-done .lsd-n { color: transparent; }
+
+/* ---- Stage viewport (cross-fading stages) ---- */
+.login-stage-wrap {
+  position: relative;
+  min-height: 150px;
+  overflow: hidden;
+}
+.login-stage {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateX(28px);
+  filter: blur(6px);
+  pointer-events: none;
+  transition:
+    opacity .42s var(--ease-out),
+    transform .5s var(--ease-out),
+    filter .42s var(--ease-out);
+}
+.login-stage[hidden] { display: block; } /* we control visibility ourselves */
+.login-stage.is-current {
+  opacity: 1;
+  transform: translateX(0);
+  filter: blur(0);
+  pointer-events: auto;
+}
+.login-stage.is-leaving-left {
+  opacity: 0;
+  transform: translateX(-28px);
+  filter: blur(6px);
+}
+.login-stage.is-leaving-right {
+  opacity: 0;
+  transform: translateX(28px);
+  filter: blur(6px);
+}
+
+/* ---- Fields & inputs ---- */
+.field-big { display: flex; flex-direction: column; gap: 12px; }
+.field-big .field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.field-back {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink-dim);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+.field-back:hover { color: var(--gold-3); background: rgba(212,175,108,0.06); }
+
+.text-input.text-input-lg {
+  padding: 18px 18px;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  border-radius: var(--r-md);
+  background: rgba(0,0,0,0.4);
+}
+.text-input.text-input-lg:focus {
+  background: rgba(0,0,0,0.55);
+  box-shadow:
+    0 0 0 3px rgba(212,175,108,0.12),
+    0 0 34px -8px var(--gold-glow),
+    inset 0 0 18px rgba(212,175,108,0.04);
+}
+
+.field-hint {
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+/* ---- PIN boxes ---- */
+.pin-field { display: flex; flex-direction: column; gap: 14px; }
+.pin-boxes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  max-width: 340px;
+  margin: 0 auto;
+  width: 100%;
+}
+.pin-box {
+  width: 100%;
+  height: 68px;
+  text-align: center;
+  font-family: var(--f-mono);
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--gold-3);
+  background: rgba(0,0,0,0.48);
+  border: 1px solid rgba(212,175,108,0.22);
+  border-radius: var(--r-md);
+  caret-color: var(--gold);
+  outline: none;
+  transition:
+    border-color var(--t-med) var(--ease-out),
+    box-shadow var(--t-med) var(--ease-out),
+    background var(--t-med) var(--ease-out),
+    transform var(--t-med) var(--ease-out);
+}
+.pin-box::selection { background: rgba(212,175,108,0.35); }
+.pin-box:focus {
+  border-color: var(--gold);
+  background: rgba(0,0,0,0.6);
+  box-shadow:
+    0 0 0 3px rgba(212,175,108,0.14),
+    0 0 34px -8px var(--gold-glow),
+    inset 0 0 22px rgba(212,175,108,0.05);
+  transform: translateY(-1px);
+}
+.pin-box.is-filled {
+  border-color: rgba(212,175,108,0.55);
+  background: rgba(212,175,108,0.05);
+}
+
+/* ---- Actions (Continue / Unlock) ---- */
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+}
+.btn-step {
+  width: 100%;
+  padding: 15px 22px;
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.btn-step .bs-arrow {
+  font-family: var(--f-mono);
+  font-size: 16px;
+  transition: transform var(--t-med) var(--ease-out);
+}
+.btn-step:hover .bs-arrow { transform: translateX(4px); }
+.btn-step[hidden] { display: none; }
+.btn-unlock { position: relative; }
+
+/* ---- Viewport fit & responsive ---- */
+@media (max-height: 760px) {
+  .login-card.login-card-stepped {
+    padding: 34px 40px 28px;
+    gap: 20px;
+    max-height: calc(100vh - 120px);
+  }
+  .login-card-stepped .login-sub { display: none; }
+  .login-stage-wrap { min-height: 130px; }
+  .pin-box { height: 60px; font-size: 24px; }
+  .text-input.text-input-lg { padding: 14px 16px; font-size: 16px; }
+}
+@media (max-width: 520px) {
+  .login-card.login-card-stepped { padding: 28px 22px 24px; max-width: 100%; }
+  .login-step .lsd-l { display: none; }
+  .pin-boxes { gap: 8px; max-width: 280px; }
+  .pin-box { height: 58px; font-size: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-stage { transition: none; }
+  .login-step .lsd-n { transition: none; }
+  .btn-step .bs-arrow { transition: none; }
 }

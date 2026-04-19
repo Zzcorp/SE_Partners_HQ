@@ -4,55 +4,97 @@
 {% block body_class %}page-login{% endblock %}
 
 {% block content %}
-<section class="login-card reveal" id="login-card">
-  <div class="login-eyebrow mono">restricted access</div>
-  <h1 class="login-title">The S&amp;E Partners <span class="accent">HQ</span></h1>
-  <p class="login-sub">Sovereign prospecting console.<br>Three layers. No drift.</p>
+<section class="login-card login-card-stepped reveal" id="login-card" data-step="1">
+  <div class="login-head">
+    <div class="login-eyebrow mono">restricted access</div>
+    <h1 class="login-title">The S&amp;E Partners <span class="accent">HQ</span></h1>
+    <p class="login-sub">Sovereign prospecting console.<br>Three layers. No drift.</p>
+  </div>
 
-  <form method="post" class="login-form" id="login-form" autocomplete="off" novalidate>
+  <!-- Step indicator -->
+  <ol class="login-steps mono" aria-label="Access flow">
+    <li class="login-step is-current" data-step-dot="1"><span class="lsd-n">01</span><span class="lsd-l">Username</span></li>
+    <li class="login-step" data-step-dot="2"><span class="lsd-n">02</span><span class="lsd-l">Password</span></li>
+    <li class="login-step" data-step-dot="3"><span class="lsd-n">03</span><span class="lsd-l">Access PIN</span></li>
+  </ol>
+
+  <form method="post" class="login-form login-form-stepped" id="login-form" autocomplete="off" novalidate>
     {% csrf_token %}
 
-    <label class="field">
-      <span class="field-label mono">01 · Username</span>
-      <input type="text"
-             name="username"
-             autocomplete="off"
-             autocorrect="off"
-             autocapitalize="off"
-             spellcheck="false"
-             required
-             maxlength="64"
-             class="text-input"
-             placeholder=""
-             autofocus>
-    </label>
+    <!-- Stage viewport — only one stage is visible at a time -->
+    <div class="login-stage-wrap">
 
-    <label class="field">
-      <span class="field-label mono">02 · Password</span>
-      <input type="password"
-             name="password"
-             autocomplete="new-password"
-             required
-             class="text-input"
-             placeholder="">
-    </label>
+      <!-- STEP 1 — USERNAME -->
+      <div class="login-stage is-current" data-stage="1">
+        <label class="field field-big">
+          <span class="field-label mono">01 · Username</span>
+          <input type="text"
+                 name="username"
+                 id="f-username"
+                 autocomplete="username"
+                 autocorrect="off"
+                 autocapitalize="off"
+                 spellcheck="false"
+                 required
+                 maxlength="64"
+                 class="text-input text-input-lg"
+                 placeholder="your.handle"
+                 autofocus>
+          <span class="field-hint mono">press Enter to continue →</span>
+        </label>
+      </div>
 
-    <label class="field pin-field">
-      <span class="field-label mono">03 · Access PIN</span>
-      <input type="password"
-             name="pin"
-             inputmode="numeric"
-             pattern="[0-9]*"
-             autocomplete="off"
-             required
-             maxlength="4"
-             minlength="4"
-             class="pin-input"
-             placeholder="">
-    </label>
+      <!-- STEP 2 — PASSWORD -->
+      <div class="login-stage" data-stage="2" hidden>
+        <label class="field field-big">
+          <span class="field-label mono">
+            02 · Password
+            <button type="button" class="field-back mono" data-step-back title="Back to username">← back</button>
+          </span>
+          <input type="password"
+                 name="password"
+                 id="f-password"
+                 autocomplete="current-password"
+                 required
+                 class="text-input text-input-lg"
+                 placeholder="••••••••">
+          <span class="field-hint mono">press Enter to continue →</span>
+        </label>
+      </div>
 
-    {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
-    <button type="submit" class="btn btn-primary">Unlock console</button>
+      <!-- STEP 3 — PIN (4 digit boxes) -->
+      <div class="login-stage" data-stage="3" hidden>
+        <div class="field field-big pin-field">
+          <span class="field-label mono">
+            03 · Access PIN
+            <button type="button" class="field-back mono" data-step-back title="Back to password">← back</button>
+          </span>
+          <div class="pin-boxes" role="group" aria-label="4-digit access PIN">
+            <input type="text" class="pin-box mono" inputmode="numeric" pattern="[0-9]" maxlength="1" autocomplete="off" aria-label="PIN digit 1">
+            <input type="text" class="pin-box mono" inputmode="numeric" pattern="[0-9]" maxlength="1" autocomplete="off" aria-label="PIN digit 2">
+            <input type="text" class="pin-box mono" inputmode="numeric" pattern="[0-9]" maxlength="1" autocomplete="off" aria-label="PIN digit 3">
+            <input type="text" class="pin-box mono" inputmode="numeric" pattern="[0-9]" maxlength="1" autocomplete="off" aria-label="PIN digit 4">
+          </div>
+          <!-- Hidden canonical value the server reads (assembled from boxes) -->
+          <input type="hidden" name="pin" id="f-pin" value="">
+          <span class="field-hint mono">enter your 4-digit key</span>
+        </div>
+      </div>
+
+    </div><!-- /login-stage-wrap -->
+
+    {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+
+    <div class="login-actions">
+      <button type="button" class="btn btn-primary btn-step" id="btn-step-next">
+        <span class="bs-label">Continue</span>
+        <span class="bs-arrow" aria-hidden="true">→</span>
+      </button>
+      <button type="submit" class="btn btn-primary btn-step btn-unlock" id="btn-step-submit" hidden>
+        <span class="bs-label">Unlock console</span>
+        <span class="bs-arrow" aria-hidden="true">→</span>
+      </button>
+    </div>
   </form>
 
   <div class="login-foot mono">secure session · 12h expiry</div>
