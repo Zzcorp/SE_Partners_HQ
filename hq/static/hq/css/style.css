@@ -5202,8 +5202,27 @@ html.welcome-lock, html.welcome-lock body { overflow: hidden !important; }
   box-shadow: none;
   max-width: none;
 }
-/* Inside-modal the launcher's own header is redundant with modal head -> hide it */
-.launcher-modal-body .launch-strip-inmodal .launcher-head { display: none; }
+/* Inside-modal the launcher's eyebrow + title are redundant with the modal head,
+   so hide *only* the text column — we still need the actions row (which owns
+   the Launch / Reset buttons) to stay visible. The actions stick to the top
+   of the scrollable body so the launch button is always reachable. */
+.launcher-modal-body .launch-strip-inmodal .launcher-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin-bottom: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  padding: 10px 0 12px;
+  background: linear-gradient(180deg, rgba(10,11,16,0.96) 0%, rgba(10,11,16,0.96) 70%, rgba(10,11,16,0) 100%);
+  backdrop-filter: blur(4px);
+}
+.launcher-modal-body .launch-strip-inmodal .launcher-head-left { display: none; }
+.launcher-modal-body .launch-strip-inmodal .launcher-head-actions {
+  justify-content: flex-end;
+  gap: 12px;
+}
 
 @keyframes modal-fade {
   from { opacity: 0; }
