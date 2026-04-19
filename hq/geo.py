@@ -210,3 +210,51 @@ def country_name(iso2: str) -> str:
         return ""
     entry = COUNTRY_CENTROIDS.get(iso2.upper())
     return entry[2] if entry else iso2.upper()
+
+
+# ccTLD → ISO2 (pragmatic fallback when LLM is disabled and country stays empty).
+# Only ccTLDs that cleanly map 1-to-1 to a country — no generic TLDs, no .io, .ai.
+TLD_TO_ISO2: dict[str, str] = {
+    "fr": "FR", "de": "DE", "nl": "NL", "be": "BE", "ch": "CH", "at": "AT",
+    "it": "IT", "es": "ES", "pt": "PT", "uk": "GB", "co.uk": "GB", "ie": "IE",
+    "dk": "DK", "se": "SE", "no": "NO", "fi": "FI", "is": "IS", "pl": "PL",
+    "cz": "CZ", "sk": "SK", "hu": "HU", "ro": "RO", "bg": "BG", "gr": "GR",
+    "lu": "LU", "li": "LI", "mc": "MC", "sm": "SM", "mt": "MT",
+    "ua": "UA", "ee": "EE", "lv": "LV", "lt": "LT", "hr": "HR", "si": "SI", "rs": "RS",
+    "us": "US", "ca": "CA", "mx": "MX",
+    "ar": "AR", "br": "BR", "cl": "CL", "co": "CO", "pe": "PE", "uy": "UY", "ve": "VE",
+    "au": "AU", "nz": "NZ",
+    "jp": "JP", "kr": "KR", "cn": "CN", "hk": "HK", "tw": "TW", "sg": "SG",
+    "my": "MY", "id": "ID", "th": "TH", "vn": "VN", "ph": "PH", "in": "IN",
+    "pk": "PK", "bd": "BD", "lk": "LK", "np": "NP",
+    "ae": "AE", "sa": "SA", "qa": "QA", "kw": "KW", "bh": "BH", "om": "OM",
+    "il": "IL", "tr": "TR", "eg": "EG", "ma": "MA", "tn": "TN", "dz": "DZ",
+    "za": "ZA", "ng": "NG", "ke": "KE", "gh": "GH", "ci": "CI", "sn": "SN",
+    "ru": "RU", "by": "BY", "kz": "KZ", "ge": "GE", "am": "AM", "az": "AZ",
+}
+
+
+def country_from_url(url: str) -> str:
+    """Best-effort ISO2 guess from a URL's TLD. Returns '' when no reliable mapping.
+
+    Only used as a fallback when the LLM-driven country extraction didn't fire
+    (e.g. ANTHROPIC_API_KEY missing) so at least *something* shows on the map.
+    """
+    if not url:
+        return ""
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(url).hostname or ""
+    except Exception:
+        return ""
+    host = host.lower().strip(".")
+    if not host:
+        return ""
+    # Try 2-level ccTLDs first (co.uk, com.au, gov.sg, …)
+    parts = host.split(".")
+    if len(parts) >= 3:
+        last2 = ".".join(parts[-2:])
+        if last2 in TLD_TO_ISO2:
+            return TLD_TO_ISO2[last2]
+    tld = parts[-1] if parts else ""
+    return TLD_TO_ISO2.get(tld, "")

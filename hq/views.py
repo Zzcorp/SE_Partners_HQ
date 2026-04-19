@@ -212,6 +212,125 @@ def console_view(request):
         "platform_groups": sorted(PLATFORM_GROUP_NAMES),
         "recent_runs": recent,
         "llm_enabled": _llm_enabled(),
+        "llm_missing": not _llm_enabled(),
+    })
+
+
+# -----------------------------------------------------------------------
+# Database browser — `/database/` : runs + leads, expandable rows
+# -----------------------------------------------------------------------
+@require_GET
+@login_required
+def database_view(request):
+    """List all runs with aggregate stats; rows expand client-side to reveal leads."""
+    search = (request.GET.get("q") or "").strip()
+    status_filter = (request.GET.get("status") or "").strip()
+
+    runs_qs = ScrapeRun.objects.all().order_by("-started_at")
+    if status_filter in {"running", "done", "error", "stopped"}:
+        runs_qs = runs_qs.filter(status=status_filter)
+
+    # Aggregate totals
+    leads_qs = Lead.objects.all()
+    if search:
+        leads_qs = leads_qs.filter(name__icontains=search) | Lead.objects.filter(company__icontains=search)
+        runs_qs = runs_qs.filter(id__in=leads_qs.values("run_id").distinct())
+
+    totals = {
+        "runs": ScrapeRun.objects.count(),
+        "leads": Lead.objects.count(),
+        "countries": Lead.objects.exclude(country="").values("country").distinct().count(),
+        "high_value": Lead.objects.filter(llm_score__gte=80).count(),
+        "with_email": Lead.objects.exclude(emails=[]).exclude(emails__isnull=True).count(),
+        "avg_llm": round((Lead.objects.exclude(llm_score__isnull=True).aggregate(v=Avg("llm_score"))["v"] or 0), 1),
+    }
+
+    runs = list(runs_qs[:60])
+    # Attach quick stat badges directly to each run (simplifies template)
+    for r in runs:
+        qs = Lead.objects.filter(run=r)
+        r.bdg_with_email = qs.exclude(emails=[]).exclude(emails__isnull=True).count()
+        r.bdg_with_country = qs.exclude(country="").count()
+        r.bdg_high_value = qs.filter(llm_score__gte=80).count()
+        r.bdg_top_score = qs.aggregate(v=Max("llm_score"))["v"]
+        r.bdg_avg_score = qs.exclude(llm_score__isnull=True).aggregate(v=Avg("llm_score"))["v"]
+
+    return render(request, "hq/database.html", {
+        "runs": runs,
+        "totals": totals,
+        "search": search,
+        "status_filter": status_filter,
+        "llm_enabled": _llm_enabled(),
+    })
+
+
+@require_GET
+@login_required
+def api_run_leads(request, run_id: str):
+    """Return all leads for a run (used by the expandable Database rows)."""
+    run = get_object_or_404(ScrapeRun, run_id=run_id)
+    qs = Lead.objects.filter(run=run).order_by("-lead_score", "-llm_score")[:500]
+    data = [{
+        "id": l.id,
+        "name": l.name, "role": l.role, "company": l.company,
+        "company_description": l.company_description,
+        "emails": l.emails or [],
+        "email_candidates": l.email_candidates or [],
+        "phones": l.phones or [],
+        "linkedin": l.linkedin or "",
+        "country": l.country, "country_name": country_name(l.country),
+        "city": l.city, "lat": l.lat, "lng": l.lng,
+        "lead_score": round(l.lead_score or 0, 3),
+        "llm_score": l.llm_score,
+        "llm_score_reasoning": l.llm_score_reasoning,
+        "seniority": l.seniority,
+        "fund_size": l.fund_size,
+        "fund_close_step": l.fund_close_step,
+        "recency_months": l.recency_months,
+        "source": l.source, "source_url": l.source_url,
+        "source_title": l.source_title,
+        "evidence": (l.evidence or "")[:1200],
+    } for l in qs]
+    return JsonResponse({
+        "run_id": run.run_id,
+        "started_at": run.started_at.isoformat(),
+        "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+        "queries_total": run.queries_total,
+        "people_unique": run.people_unique,
+        "leads_final": run.leads_final,
+        "status": run.status,
+        "categories": run.categories or [],
+        "leads": data,
+    })
+
+
+@require_GET
+@login_required
+def api_lead_detail(request, lead_id: int):
+    """Full single-lead detail for the expand drawer."""
+    l = get_object_or_404(Lead, id=lead_id)
+    return JsonResponse({
+        "id": l.id,
+        "name": l.name, "role": l.role, "company": l.company,
+        "company_description": l.company_description,
+        "emails": l.emails or [],
+        "email_candidates": l.email_candidates or [],
+        "phones": l.phones or [],
+        "linkedin": l.linkedin or "",
+        "country": l.country, "country_name": country_name(l.country),
+        "city": l.city, "lat": l.lat, "lng": l.lng,
+        "lead_score": round(l.lead_score or 0, 3),
+        "llm_score": l.llm_score,
+        "llm_score_reasoning": l.llm_score_reasoning,
+        "seniority": l.seniority,
+        "fund_size": l.fund_size,
+        "fund_close_step": l.fund_close_step,
+        "recency_months": l.recency_months,
+        "source": l.source, "source_url": l.source_url,
+        "source_title": l.source_title,
+        "evidence": l.evidence or "",
+        "run_id": l.run.run_id if l.run_id else "",
+        "created_at": l.created_at.isoformat() if getattr(l, "created_at", None) else "",
     })
 
 

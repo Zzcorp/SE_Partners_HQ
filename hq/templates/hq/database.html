@@ -1,0 +1,200 @@
+{% extends "hq/base.html" %}
+{% load static %}
+{% block title %}Database · The S&amp;E Partners HQ{% endblock %}
+{% block body_class %}page-database{% endblock %}
+
+{% block content %}
+<section class="db-header reveal">
+  <div class="db-header-left">
+    <div class="db-eyebrow mono">— operations · leads · archive —</div>
+    <h1 class="db-title">The <em>database</em>. Every run, every lead.</h1>
+    <p class="db-lead">Every scraping operation, expanded. Click a run to reveal its leads; click a lead to see the full record — emails, scoring reasoning, source evidence, everything.</p>
+  </div>
+
+  <div class="db-totals mono">
+    <div class="db-total"><span class="db-total-k">runs</span><b>{{ totals.runs }}</b></div>
+    <div class="db-total"><span class="db-total-k">leads</span><b>{{ totals.leads }}</b></div>
+    <div class="db-total"><span class="db-total-k">countries</span><b>{{ totals.countries }}</b></div>
+    <div class="db-total"><span class="db-total-k">high-value</span><b>{{ totals.high_value }}</b></div>
+    <div class="db-total"><span class="db-total-k">with email</span><b>{{ totals.with_email }}</b></div>
+    <div class="db-total"><span class="db-total-k">avg LLM</span><b>{{ totals.avg_llm }}</b></div>
+  </div>
+</section>
+
+{% if not llm_enabled %}
+<aside class="llm-notice db-notice" role="status">
+  <span class="llm-notice-glyph" aria-hidden="true">✦</span>
+  <div class="llm-notice-body">
+    <b>Reminder — LLM is off.</b>
+    <span>Rows below may be missing country, city, fund-size, seniority, LLM scoring &amp; reasoning. Set <code class="mono">ANTHROPIC_API_KEY</code> to backfill on the next run.</span>
+  </div>
+</aside>
+{% endif %}
+
+<form method="get" class="db-filters" autocomplete="off">
+  <div class="db-filters-row">
+    <label class="db-search">
+      <span class="db-search-glyph" aria-hidden="true">⌕</span>
+      <input type="search" name="q" value="{{ search }}" placeholder="Search name or company…" class="db-search-input mono">
+    </label>
+    <div class="db-status-pills" role="group" aria-label="Filter by run status">
+      <a class="db-spill {% if not status_filter %}is-on{% endif %}" href="?">all</a>
+      <a class="db-spill {% if status_filter == 'running' %}is-on{% endif %}" href="?status=running{% if search %}&amp;q={{ search }}{% endif %}">running</a>
+      <a class="db-spill {% if status_filter == 'done' %}is-on{% endif %}" href="?status=done{% if search %}&amp;q={{ search }}{% endif %}">done</a>
+      <a class="db-spill {% if status_filter == 'stopped' %}is-on{% endif %}" href="?status=stopped{% if search %}&amp;q={{ search }}{% endif %}">stopped</a>
+      <a class="db-spill {% if status_filter == 'error' %}is-on{% endif %}" href="?status=error{% if search %}&amp;q={{ search }}{% endif %}">error</a>
+    </div>
+  </div>
+</form>
+
+<div class="db-runs" id="db-runs">
+  {% for r in runs %}
+  <article class="db-run" data-run-id="{{ r.run_id }}">
+    <button type="button" class="db-run-row" data-db-toggle>
+      <span class="db-run-chev" aria-hidden="true">▸</span>
+      <span class="db-run-id mono">{{ r.run_id|slice:":8" }}</span>
+      <span class="db-run-started mono">{{ r.started_at|date:"Y-m-d H:i" }}</span>
+      <span class="db-run-duration mono">
+        {% if r.finished_at %}
+          {{ r.finished_at|timesince:r.started_at }}
+        {% else %}
+          <span class="pulse-dot"></span> live
+        {% endif %}
+      </span>
+      <span class="db-run-stats">
+        <span class="db-stat"><b>{{ r.queries_total }}</b> q</span>
+        <span class="db-stat"><b>{{ r.people_unique }}</b> ppl</span>
+        <span class="db-stat"><b>{{ r.leads_final }}</b> leads</span>
+      </span>
+      <span class="db-run-badges mono">
+        {% if r.bdg_with_email %}<span class="db-bdg db-bdg-email">✉ {{ r.bdg_with_email }}</span>{% endif %}
+        {% if r.bdg_with_country %}<span class="db-bdg db-bdg-geo">⌖ {{ r.bdg_with_country }}</span>{% endif %}
+        {% if r.bdg_high_value %}<span class="db-bdg db-bdg-hv">★ {{ r.bdg_high_value }}</span>{% endif %}
+        {% if r.bdg_top_score %}<span class="db-bdg db-bdg-score">top {{ r.bdg_top_score|floatformat:0 }}</span>{% endif %}
+      </span>
+      <span class="db-run-status"><span class="tag tag-{{ r.status }}">{{ r.status }}</span></span>
+      <span class="db-run-exports">
+        <a class="db-export" href="{% url 'export_csv' r.run_id %}" title="CSV" onclick="event.stopPropagation()">CSV</a>
+        <a class="db-export" href="{% url 'export_xlsx' r.run_id %}" title="XLSX" onclick="event.stopPropagation()">XLSX</a>
+      </span>
+    </button>
+
+    <div class="db-run-body" hidden>
+      <div class="db-run-meta mono">
+        <span>run_id: <b>{{ r.run_id }}</b></span>
+        {% if r.categories %}<span>cats: <b>{{ r.categories|join:", " }}</b></span>{% endif %}
+      </div>
+      <div class="db-leads-toolbar mono">
+        <span class="db-leads-count"><span data-db-count>0</span> leads</span>
+        <label class="db-lead-search">
+          <input type="search" placeholder="filter leads…" class="db-lead-filter mono" data-db-filter>
+        </label>
+      </div>
+      <div class="db-leads-wrap">
+        <table class="db-leads-table">
+          <thead>
+            <tr>
+              <th>Score</th><th>LLM</th><th>Name</th><th>Role</th><th>Company</th>
+              <th>Geo</th><th>Email</th><th>LinkedIn</th><th>Fund</th><th>Source</th>
+            </tr>
+          </thead>
+          <tbody data-db-leads></tbody>
+        </table>
+        <div class="db-leads-placeholder mono" data-db-placeholder>Click "▸" above to load leads.</div>
+      </div>
+    </div>
+  </article>
+  {% empty %}
+  <div class="db-empty mono">No runs match the current filter.</div>
+  {% endfor %}
+</div>
+
+<!-- ======= LEAD DETAIL DRAWER (portal) ======= -->
+<div class="lead-drawer" id="lead-drawer" hidden aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="lead-drawer-backdrop" data-drawer-close></div>
+  <aside class="lead-drawer-panel" role="document">
+    <header class="lead-drawer-head">
+      <div class="ldh-left">
+        <span class="ldh-eyebrow mono">— lead detail —</span>
+        <h2 class="ldh-title" id="ld-name">—</h2>
+        <div class="ldh-sub mono"><span id="ld-role">—</span><span id="ld-company-wrap"> · <b id="ld-company">—</b></span></div>
+      </div>
+      <button type="button" class="lead-drawer-close" data-drawer-close aria-label="Close">×</button>
+    </header>
+
+    <div class="lead-drawer-body">
+      <div class="ld-scores">
+        <div class="ld-score-card"><span class="ld-k mono">Lead score</span><span class="ld-v" id="ld-lead-score">—</span></div>
+        <div class="ld-score-card"><span class="ld-k mono">LLM score</span><span class="ld-v" id="ld-llm-score">—</span></div>
+        <div class="ld-score-card"><span class="ld-k mono">Seniority</span><span class="ld-v" id="ld-seniority">—</span></div>
+      </div>
+
+      <section class="ld-section" id="ld-desc-sec" hidden>
+        <h3 class="ld-h3 mono">Company</h3>
+        <p class="ld-desc" id="ld-company-desc"></p>
+      </section>
+
+      <section class="ld-section" id="ld-reason-sec" hidden>
+        <h3 class="ld-h3 mono">LLM reasoning</h3>
+        <blockquote class="ld-reason" id="ld-llm-reason"></blockquote>
+      </section>
+
+      <section class="ld-section">
+        <h3 class="ld-h3 mono">Contact</h3>
+        <div class="ld-kv-grid">
+          <div class="ld-kv"><span class="ld-kv-k mono">Emails</span><span class="ld-kv-v" id="ld-emails">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">Email candidates</span><span class="ld-kv-v" id="ld-email-candidates">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">Phones</span><span class="ld-kv-v" id="ld-phones">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">LinkedIn</span><span class="ld-kv-v" id="ld-linkedin">—</span></div>
+        </div>
+      </section>
+
+      <section class="ld-section">
+        <h3 class="ld-h3 mono">Geography</h3>
+        <div class="ld-kv-grid">
+          <div class="ld-kv"><span class="ld-kv-k mono">Country</span><span class="ld-kv-v" id="ld-country">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">City</span><span class="ld-kv-v" id="ld-city">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">Coordinates</span><span class="ld-kv-v mono" id="ld-coords">—</span></div>
+        </div>
+      </section>
+
+      <section class="ld-section">
+        <h3 class="ld-h3 mono">Fund</h3>
+        <div class="ld-kv-grid">
+          <div class="ld-kv"><span class="ld-kv-k mono">Fund size</span><span class="ld-kv-v" id="ld-fund-size">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">Fund step</span><span class="ld-kv-v" id="ld-fund-step">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">Recency</span><span class="ld-kv-v" id="ld-recency">—</span></div>
+        </div>
+      </section>
+
+      <section class="ld-section">
+        <h3 class="ld-h3 mono">Source</h3>
+        <div class="ld-kv-grid">
+          <div class="ld-kv"><span class="ld-kv-k mono">Engine</span><span class="ld-kv-v" id="ld-source">—</span></div>
+          <div class="ld-kv"><span class="ld-kv-k mono">Title</span><span class="ld-kv-v" id="ld-source-title">—</span></div>
+          <div class="ld-kv ld-kv-wide"><span class="ld-kv-k mono">URL</span><span class="ld-kv-v"><a id="ld-source-url" href="#" target="_blank" rel="noopener">—</a></span></div>
+        </div>
+      </section>
+
+      <section class="ld-section" id="ld-evidence-sec" hidden>
+        <h3 class="ld-h3 mono">Evidence snippet</h3>
+        <pre class="ld-evidence mono" id="ld-evidence"></pre>
+      </section>
+
+      <footer class="ld-footer mono">
+        <span>Run: <b id="ld-run">—</b></span>
+        <span>Lead #<b id="ld-id">—</b></span>
+        <span id="ld-created">—</span>
+      </footer>
+    </div>
+  </aside>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.HQ_CSRF = "{{ csrf_token }}";
+</script>
+<script src="{% static 'hq/js/database.js' %}" defer></script>
+{% endblock %}

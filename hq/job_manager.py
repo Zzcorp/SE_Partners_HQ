@@ -80,7 +80,7 @@ class JobManager:
                 status="done",
                 finished_at=timezone.now(),
             )
-            from hq.geo import resolve_centroid
+            from hq.geo import resolve_centroid, country_from_url
             bulk = []
             promoted = {
                 "name", "role", "company", "emails", "email_candidates",
@@ -95,6 +95,9 @@ class JobManager:
                 city = (row.get("city") or "")[:120]
                 lat = row.get("lat")
                 lng = row.get("lng")
+                # TLD fallback: when LLM is off, guess country from the source URL's ccTLD
+                if not country:
+                    country = country_from_url(row.get("source_url") or "")
                 # Fallback to ISO2 centroid when the LLM didn't resolve a precise point
                 if (lat is None or lng is None) and country:
                     centroid = resolve_centroid(country)

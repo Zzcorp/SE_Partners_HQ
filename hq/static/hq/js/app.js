@@ -157,6 +157,13 @@
     runState: $("#run-state"),
     btnStart: $("#btn-start"), btnStop: $("#btn-stop"), btnClearLog: $("#btn-clear-log"),
     connPill: $("#connection-pill"), connLabel: $("#connection-label"),
+    // mini live feed
+    miniFeed: $("#mini-feed"), miniFeedCount: $("#mini-feed-count"),
+    miniFeedPulse: $("#mini-feed-pulse"),
+    mffWorkers: $("#mff-workers"), mffThrPages: $("#mff-thr-pages"), mffThrPeople: $("#mff-thr-people"),
+    // launcher modal
+    launcherModal: $("#launcher-modal"),
+    btnOpenLauncher: $("#btn-open-launcher"),
   };
 
   // ---------- counter tween ----------
@@ -182,6 +189,31 @@
 
   // ---------- terminal ----------
   const MAX_LOG_LINES = 500;
+  const MAX_MINI_FEED = 40;
+  let miniFeedCount = 0;
+  const appendMiniFeed = (tag, msg, ts) => {
+    if (!els.miniFeed) return;
+    const empty = els.miniFeed.querySelector(".mini-feed-empty");
+    if (empty) empty.remove();
+    const li = document.createElement("li");
+    const tagCls = (tag || "system").toLowerCase();
+    li.className = `mini-feed-row tag-${tagCls}`;
+    const tsStr = ts ? tsLog(new Date(ts * 1000)) : tsLog();
+    li.innerHTML = `
+      <span class="mfr-ts"></span>
+      <span class="mfr-tag"></span>
+      <span class="mfr-msg"></span>
+    `;
+    li.querySelector(".mfr-ts").textContent = tsStr;
+    li.querySelector(".mfr-tag").textContent = (tag || "system").toLowerCase();
+    li.querySelector(".mfr-msg").textContent = msg;
+    els.miniFeed.insertBefore(li, els.miniFeed.firstChild);
+    while (els.miniFeed.children.length > MAX_MINI_FEED) els.miniFeed.removeChild(els.miniFeed.lastChild);
+    miniFeedCount += 1;
+    setText(els.miniFeedCount, miniFeedCount > 999 ? "999+" : miniFeedCount);
+    if (els.miniFeedPulse) els.miniFeedPulse.classList.remove("is-idle");
+  };
+
   const appendLog = (tag, msg, ts) => {
     const line = document.createElement("div");
     line.className = "log-line";
@@ -199,6 +231,8 @@
     setText(els.logCount, state.logCount);
     setText(els.ctabLog, state.logCount > 999 ? "999+" : state.logCount);
     els.terminal.scrollTop = els.terminal.scrollHeight;
+    // mirror into compact live feed on the overview tab
+    appendMiniFeed(tag, msg, ts);
   };
   if (els.btnClearLog) els.btnClearLog.addEventListener("click", () => {
     els.terminal.innerHTML = "";
@@ -359,6 +393,8 @@
     setText(els.hmPeopleRate, `${peoplePerMin} /min`);
     setText(els.srPagesRate, pagesPerMin);
     setText(els.srPeopleRate, peoplePerMin);
+    setText(els.mffThrPages, pagesPerMin);
+    setText(els.mffThrPeople, peoplePerMin);
 
     const remaining = Math.max(0, state.metrics.queries_total - state.metrics.queries_done);
     if (!state.running || !state.startTs || state.metrics.queries_done <= 0 || !remaining) {
@@ -432,6 +468,7 @@
     setText(els.workersTotal, ids.length);
     setText(els.ctabWorkers, ids.length);
     setText(els.srWorkers, busy);
+    setText(els.mffWorkers, busy);
 
     if (!els.workerMesh) return;
     if (!ids.length) {
@@ -590,6 +627,7 @@
       els.srState.textContent = STATE_LABEL[lbl] || lbl.toUpperCase();
       els.srState.className = `sr-state-pill sr-state-${lbl}`;
     }
+    if (els.miniFeedPulse) els.miniFeedPulse.classList.toggle("is-idle", !state.running);
   };
 
   // ---------- domain extraction helper ----------
@@ -1195,6 +1233,7 @@
       const j = await r.json();
       appendLog("system", `Run ${j.run_id} launched`);
       setNarration("system", `Run ${(j.run_id || "").slice(0,8)} launched · ${activePreset} preset`);
+      document.dispatchEvent(new CustomEvent("hq:run-launched", { detail: { run_id: j.run_id } }));
     } catch (err) {
       appendLog("error", `Network error: ${err.message}`);
       setNarration("error", `Network error: ${err.message}`);
@@ -1202,16 +1241,52 @@
     }
   });
 
-  // Keyboard shortcuts: Cmd/Ctrl+Enter to launch · Esc to reset launcher
+  // ---------- Launcher modal open/close ----------
+  const openLauncher = () => {
+    if (!els.launcherModal) return;
+    els.launcherModal.hidden = false;
+    els.launcherModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+    // focus first actionable control for accessibility
+    const firstBtn = els.launcherModal.querySelector("button, [href], input, select, textarea");
+    if (firstBtn) { try { firstBtn.focus(); } catch {} }
+  };
+  const closeLauncher = () => {
+    if (!els.launcherModal) return;
+    els.launcherModal.hidden = true;
+    els.launcherModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+  };
+  if (els.btnOpenLauncher) els.btnOpenLauncher.addEventListener("click", openLauncher);
+  // backdrop and any data-modal-close element
+  document.addEventListener("click", (e) => {
+    const closer = e.target.closest("[data-modal-close]");
+    if (closer && closer.closest("#launcher-modal")) closeLauncher();
+  });
+
+  // Keyboard shortcuts:
+  //   Cmd/Ctrl+N  → open launcher
+  //   Cmd/Ctrl+Enter → launch run (when modal open)
+  //   Esc → close modal or reset launcher
   document.addEventListener("keydown", (e) => {
     const inInput = e.target && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName);
+    const modalOpen = els.launcherModal && !els.launcherModal.hidden;
+    if ((e.metaKey || e.ctrlKey) && (e.key === "n" || e.key === "N")) {
+      e.preventDefault();
+      if (modalOpen) closeLauncher(); else openLauncher();
+      return;
+    }
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (startForm && !state.running) startForm.requestSubmit();
-    } else if (e.key === "Escape" && !inInput && els2.btnResetLauncher) {
-      els2.btnResetLauncher.click();
+    } else if (e.key === "Escape") {
+      if (modalOpen) { closeLauncher(); return; }
+      if (!inInput && els2.btnResetLauncher) els2.btnResetLauncher.click();
     }
   });
+
+  // Auto-close modal once a run is successfully launched
+  document.addEventListener("hq:run-launched", closeLauncher);
 
   if (els.btnStop) els.btnStop.addEventListener("click", async () => {
     if (!state.running) return;

@@ -9,8 +9,51 @@
 
 {% block content %}
 
-<!-- ========= LAUNCH STRIP (pinned) ========= -->
-<section class="launch-strip launch-strip-v2 reveal" aria-label="Scraper launcher">
+<!-- ========= CONSOLE HEADER (top bar + LLM banner) ========= -->
+<section class="console-header reveal">
+  <div class="console-header-row">
+    <div class="console-header-left">
+      <div class="console-eyebrow mono">— prospecting engine · live console —</div>
+      <h1 class="console-title">What the engine is <em>doing</em>. <span class="accent">Right now.</span></h1>
+    </div>
+    <div class="console-header-actions">
+      <button type="button" class="btn btn-primary btn-new-run" id="btn-open-launcher">
+        <span class="nr-glyph" aria-hidden="true">◷</span>
+        <span class="nr-body">
+          <span class="nr-title">New run</span>
+          <span class="nr-sub mono">⌘N · configure &amp; launch</span>
+        </span>
+      </button>
+      <button type="button" class="btn btn-ghost" id="btn-stop" title="Stop current run">Stop</button>
+      <span class="run-state mono" id="run-state">idle</span>
+    </div>
+  </div>
+
+  {% if llm_missing %}
+  <aside class="llm-notice" role="status">
+    <span class="llm-notice-glyph" aria-hidden="true">✦</span>
+    <div class="llm-notice-body">
+      <b>LLM enrichment is off.</b>
+      <span>Country, city, fund-sizing, seniority, LLM scoring &amp; reasoning are populated by Claude. Set <code class="mono">ANTHROPIC_API_KEY</code> in your environment and restart to unlock them.</span>
+      <span class="llm-notice-fallback mono">Fallback active: country is inferred from source ccTLD when possible.</span>
+    </div>
+  </aside>
+  {% endif %}
+</section>
+
+<!-- ========= LAUNCHER MODAL (opens on demand) ========= -->
+<div class="launcher-modal" id="launcher-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="launcher-modal-title">
+  <div class="launcher-modal-backdrop" data-modal-close></div>
+  <div class="launcher-modal-dialog" role="document">
+    <header class="launcher-modal-head">
+      <div class="lm-head-left">
+        <span class="lm-eyebrow mono">— new prospecting run —</span>
+        <h2 class="lm-title" id="launcher-modal-title">Compose a run</h2>
+      </div>
+      <button type="button" class="lm-close" data-modal-close aria-label="Close launcher">×</button>
+    </header>
+    <div class="launcher-modal-body" id="launcher-modal-body">
+<section class="launch-strip launch-strip-v2 launch-strip-inmodal" aria-label="Scraper launcher">
   <form id="start-form" class="launcher-form" autocomplete="off">
 
     <header class="launcher-head">
@@ -25,8 +68,6 @@
           <span class="btn-launch-arrow" aria-hidden="true">→</span>
         </button>
         <button type="button" class="btn btn-ghost btn-reset" id="btn-reset-launcher" title="Reset launcher (Esc)">Reset</button>
-        <button type="button" class="btn btn-ghost" id="btn-stop" title="Stop current run">Stop</button>
-        <span class="run-state mono" id="run-state">idle</span>
         <span class="launcher-shortcut mono" aria-hidden="true">⌘↵ to launch</span>
       </div>
     </header>
@@ -252,6 +293,9 @@
     </footer>
   </form>
 </section>
+    </div><!-- /launcher-modal-body -->
+  </div><!-- /launcher-modal-dialog -->
+</div><!-- /launcher-modal -->
 
 <!-- ========= STATUS RIBBON (always visible across tabs) ========= -->
 <section class="status-ribbon" aria-label="Run status">
@@ -309,6 +353,9 @@
 <!-- ========= OVERVIEW ========= -->
 <section class="console-tab-panel is-active" data-tab-panel="overview" role="tabpanel">
 
+  <div class="overview-split">
+    <!-- Left column: hero metrics grid -->
+    <div class="overview-metrics-col">
   <div class="hero-metrics" aria-label="Live run metrics">
     <div class="hmetric" data-metric="pages">
       <div class="hmetric-head">
@@ -364,6 +411,29 @@
       <div class="hmetric-sub mono" id="hm-top-country">—</div>
     </div>
   </div>
+    </div><!-- /overview-metrics-col -->
+
+    <!-- Right column: compact live feed -->
+    <aside class="overview-feed-col">
+      <div class="panel panel-minifeed">
+        <div class="panel-head panel-head-mini">
+          <div>
+            <h2 class="panel-title">Live feed</h2>
+            <div class="panel-sub mono"><span id="mini-feed-count">0</span> events · last few seconds</div>
+          </div>
+          <span class="mini-feed-pulse" id="mini-feed-pulse" aria-hidden="true"></span>
+        </div>
+        <ul class="mini-feed" id="mini-feed" aria-live="polite">
+          <li class="mini-feed-empty mono">Waiting for activity…</li>
+        </ul>
+        <div class="mini-feed-foot mono">
+          <span class="mff-item"><b id="mff-workers">0</b> busy</span>
+          <span class="mff-item"><b id="mff-thr-pages">0</b>/min pages</span>
+          <span class="mff-item"><b id="mff-thr-people">0</b>/min people</span>
+        </div>
+      </div>
+    </aside>
+  </div><!-- /overview-split -->
 
   <div class="panel panel-live">
     <div class="panel-head panel-head-live">

@@ -7,6 +7,7 @@ urlpatterns = [
     path("contact/", views.contact_submit, name="contact_submit"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("console/", views.console_view, name="console"),
+    path("database/", views.database_view, name="database"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("healthz", views.healthz, name="healthz"),
@@ -33,4 +34,6 @@ urlpatterns = [
     path("api/runs/<str:run_id>/export.csv", views.export_csv, name="export_csv"),
     path("api/runs/<str:run_id>/export.xlsx", views.export_xlsx, name="export_xlsx"),
     path("api/leads/geo", views.api_leads_geo, name="api_leads_geo"),
+    path("api/runs/<str:run_id>/leads", views.api_run_leads, name="api_run_leads"),
+    path("api/leads/<int:lead_id>/", views.api_lead_detail, name="api_lead_detail"),
 ]
