@@ -6068,6 +6068,42 @@ body.drawer-open { overflow: hidden; }
   gap: 8px;
 }
 .ld-footer b { color: var(--ink-2); font-weight: 500; }
+.ld-footer-exports { display: inline-flex; gap: 10px; }
+.ld-export {
+  color: var(--gold);
+  text-decoration: none;
+  padding: 3px 9px;
+  border: 1px solid rgba(212,175,108,0.28);
+  border-radius: 6px;
+  transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast);
+}
+.ld-export:hover {
+  color: var(--gold-3);
+  background: rgba(212,175,108,0.08);
+  border-color: var(--gold);
+}
+
+/* Company-profile grid inside the lead drawer */
+.ld-company-grid {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(212,175,108,0.14);
+}
+
+/* "Start scraping" CTA on database header */
+.db-header-cta { margin-top: 14px; }
+.btn-db-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+}
+.btn-db-launch .nr-glyph {
+  font-size: 18px;
+  color: var(--gold-3);
+}
+.btn-db-launch .nr-title { font-weight: 500; }
+.btn-db-launch .nr-sub { font-size: 10px; color: var(--ink-dim); display: block; }
 
 /* ==========================================================================
    Responsive — new components

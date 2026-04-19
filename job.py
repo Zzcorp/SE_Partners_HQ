@@ -33,6 +33,7 @@ from scraper import fetch_full, shutdown_browser, domain_of
 from extractor import extract_people, person_to_row
 from recency import detect_publish_date, is_recent, months_ago
 from email_finder import enrich_person
+from company_enricher import enrich_company, _resolve_company_domain
 from scoring import resolve_entities, score_lead, _dedup_key
 
 
@@ -145,6 +146,7 @@ class JobRunner:
         use_llm: bool = True,
         use_team_crawl: bool = True,
         use_email_enrich: bool = True,
+        use_company_enrich: bool = True,
         exclude_platforms: bool = False,
         platforms_only: bool = False,
         extra_geo: Optional[str] = None,
@@ -167,6 +169,7 @@ class JobRunner:
         self.use_llm = use_llm and config.LLM_ENABLED
         self.use_team_crawl = use_team_crawl
         self.use_email_enrich = use_email_enrich
+        self.use_company_enrich = use_company_enrich and config.LLM_ENABLED
         self.exclude_platforms = exclude_platforms
         self.platforms_only = platforms_only
         self.extra_geo = extra_geo
@@ -187,9 +190,11 @@ class JobRunner:
         self.seen_urls: Set[str] = set()
         self.seen_people: Set[str] = set()
         self.domains_team_crawled: Set[str] = set()
+        self.company_cache: Dict[str, Dict] = {}  # domain → company profile
         self.url_lock = asyncio.Lock()
         self.people_lock = asyncio.Lock()
         self.dom_lock = asyncio.Lock()
+        self.company_lock = asyncio.Lock()
 
         self.results_all: List[Dict] = []   # après dedup final
         self.metrics = Metrics()
@@ -443,6 +448,32 @@ class JobRunner:
                     row["email_candidates"] = info["candidates"]
                 except Exception as e:
                     await self._log(f"enrich error: {e}", "warn")
+
+            # Company-level enrichment (once per domain; cached across the run)
+            if self.use_company_enrich:
+                try:
+                    cdom = _resolve_company_domain(row)
+                    if cdom:
+                        async with self.company_lock:
+                            cached = self.company_cache.get(cdom)
+                        if cached is None:
+                            # Fetch homepage + LLM extract (in executor → blocking IO)
+                            cached = await loop.run_in_executor(
+                                None, lambda: enrich_company(row),
+                            )
+                            async with self.company_lock:
+                                # Other workers may have populated it meanwhile; be lenient
+                                self.company_cache.setdefault(cdom, cached or {})
+                                cached = self.company_cache[cdom]
+                            if cached:
+                                await self._log(
+                                    f"🏛 company profiled: {cdom}", "info",
+                                )
+                        if cached:
+                            for k, v in cached.items():
+                                row.setdefault(k, v)
+                except Exception as e:
+                    await self._log(f"company enrich error: {e}", "warn")
 
             row["lead_score"] = score_lead(row)
             row["_run_id"] = self.id

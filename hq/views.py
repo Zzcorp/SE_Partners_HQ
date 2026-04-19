@@ -309,10 +309,24 @@ def api_run_leads(request, run_id: str):
 def api_lead_detail(request, lead_id: int):
     """Full single-lead detail for the expand drawer."""
     l = get_object_or_404(Lead, id=lead_id)
+    extra = l.data or {}
+    company = {
+        "website":      extra.get("company_website") or "",
+        "description":  extra.get("company_description_full") or "",
+        "industry":     extra.get("company_industry") or "",
+        "hq_city":      extra.get("company_hq_city") or "",
+        "hq_country":   extra.get("company_hq_country") or "",
+        "hq_country_name": country_name(extra.get("company_hq_country") or ""),
+        "size":         extra.get("company_size") or "",
+        "founded":      extra.get("company_founded") or None,
+        "aum":          extra.get("company_aum") or "",
+        "specialties":  extra.get("company_specialties") or "",
+    }
     return JsonResponse({
         "id": l.id,
         "name": l.name, "role": l.role, "company": l.company,
         "company_description": l.company_description,
+        "company_profile": company,
         "emails": l.emails or [],
         "email_candidates": l.email_candidates or [],
         "phones": l.phones or [],
@@ -703,6 +717,7 @@ def api_start(request):
         use_llm=bool(payload.get("use_llm", True)),
         use_team_crawl=bool(payload.get("use_team_crawl", True)),
         use_email_enrich=bool(payload.get("use_email_enrich", True)),
+        use_company_enrich=bool(payload.get("use_company_enrich", True)),
         exclude_platforms=bool(payload.get("exclude_platforms", False)),
         platforms_only=bool(payload.get("platforms_only", False)),
         extra_geo=payload.get("geo") or None,

@@ -9,6 +9,15 @@
     <div class="db-eyebrow mono">— operations · leads · archive —</div>
     <h1 class="db-title">The <em>database</em>. Every run, every lead.</h1>
     <p class="db-lead">Every scraping operation, expanded. Click a run to reveal its leads; click a lead to see the full record — emails, scoring reasoning, source evidence, everything.</p>
+    <div class="db-header-cta">
+      <a href="{% url 'console' %}" class="btn btn-primary btn-db-launch">
+        <span class="nr-glyph" aria-hidden="true">◷</span>
+        <span class="nr-body">
+          <span class="nr-title">Start scraping</span>
+          <span class="nr-sub mono">open console &amp; launch a run</span>
+        </span>
+      </a>
+    </div>
   </div>
 
   <div class="db-totals mono">
@@ -132,6 +141,15 @@
       <section class="ld-section" id="ld-desc-sec" hidden>
         <h3 class="ld-h3 mono">Company</h3>
         <p class="ld-desc" id="ld-company-desc"></p>
+        <div class="ld-kv-grid ld-company-grid" id="ld-company-grid" hidden>
+          <div class="ld-kv" data-cf="industry" hidden><span class="ld-kv-k mono">Industry</span><span class="ld-kv-v" id="ld-cf-industry">—</span></div>
+          <div class="ld-kv" data-cf="hq" hidden><span class="ld-kv-k mono">HQ</span><span class="ld-kv-v" id="ld-cf-hq">—</span></div>
+          <div class="ld-kv" data-cf="size" hidden><span class="ld-kv-k mono">Size</span><span class="ld-kv-v" id="ld-cf-size">—</span></div>
+          <div class="ld-kv" data-cf="founded" hidden><span class="ld-kv-k mono">Founded</span><span class="ld-kv-v" id="ld-cf-founded">—</span></div>
+          <div class="ld-kv" data-cf="aum" hidden><span class="ld-kv-k mono">AUM</span><span class="ld-kv-v" id="ld-cf-aum">—</span></div>
+          <div class="ld-kv ld-kv-wide" data-cf="specialties" hidden><span class="ld-kv-k mono">Specialties</span><span class="ld-kv-v" id="ld-cf-specialties">—</span></div>
+          <div class="ld-kv ld-kv-wide" data-cf="website" hidden><span class="ld-kv-k mono">Website</span><span class="ld-kv-v"><a id="ld-cf-website" href="#" target="_blank" rel="noopener">—</a></span></div>
+        </div>
       </section>
 
       <section class="ld-section" id="ld-reason-sec" hidden>
@@ -185,6 +203,10 @@
         <span>Run: <b id="ld-run">—</b></span>
         <span>Lead #<b id="ld-id">—</b></span>
         <span id="ld-created">—</span>
+        <span class="ld-footer-exports">
+          <a id="ld-export-csv" class="ld-export" href="#" title="Download this run as CSV">CSV</a>
+          <a id="ld-export-xlsx" class="ld-export" href="#" title="Download this run as XLSX">XLSX</a>
+        </span>
       </footer>
     </div>
   </aside>

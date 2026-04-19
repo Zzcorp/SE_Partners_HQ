@@ -168,10 +168,47 @@
 
       set("ld-seniority", l.seniority || "—");
 
+      const cp = l.company_profile || {};
+      const descText = cp.description || l.company_description || "";
       const descSec = document.getElementById("ld-desc-sec");
       if (descSec) {
-        descSec.hidden = !l.company_description;
-        document.getElementById("ld-company-desc").textContent = l.company_description || "";
+        const grid = document.getElementById("ld-company-grid");
+        const setCF = (id, v) => {
+          const el = document.getElementById(id);
+          if (!el) return false;
+          const row = el.closest("[data-cf]");
+          const has = v != null && v !== "" && v !== 0;
+          if (row) row.hidden = !has;
+          if (has) el.textContent = v;
+          return has;
+        };
+        document.getElementById("ld-company-desc").textContent = descText;
+        document.getElementById("ld-company-desc").hidden = !descText;
+
+        let anyCF = false;
+        anyCF = setCF("ld-cf-industry", cp.industry) || anyCF;
+        const hq = [cp.hq_city, cp.hq_country_name || cp.hq_country].filter(Boolean).join(", ");
+        anyCF = setCF("ld-cf-hq", hq) || anyCF;
+        anyCF = setCF("ld-cf-size", cp.size) || anyCF;
+        anyCF = setCF("ld-cf-founded", cp.founded) || anyCF;
+        anyCF = setCF("ld-cf-aum", cp.aum) || anyCF;
+        anyCF = setCF("ld-cf-specialties", cp.specialties) || anyCF;
+        const webEl = document.getElementById("ld-cf-website");
+        const webRow = webEl ? webEl.closest("[data-cf]") : null;
+        if (webEl) {
+          if (cp.website) {
+            webEl.textContent = cp.website;
+            webEl.href = cp.website;
+            if (webRow) webRow.hidden = false;
+            anyCF = true;
+          } else {
+            webEl.textContent = "—";
+            webEl.removeAttribute("href");
+            if (webRow) webRow.hidden = true;
+          }
+        }
+        if (grid) grid.hidden = !anyCF;
+        descSec.hidden = !(descText || anyCF);
       }
       const reasonSec = document.getElementById("ld-reason-sec");
       if (reasonSec) {
@@ -213,6 +250,16 @@
       set("ld-run", (l.run_id || "").slice(0, 8) || "—");
       set("ld-id", l.id);
       set("ld-created", l.created_at ? new Date(l.created_at).toLocaleString() : "");
+
+      const csvA = document.getElementById("ld-export-csv");
+      const xlsxA = document.getElementById("ld-export-xlsx");
+      if (l.run_id) {
+        if (csvA)  csvA.href  = `/api/runs/${encodeURIComponent(l.run_id)}/export.csv`;
+        if (xlsxA) xlsxA.href = `/api/runs/${encodeURIComponent(l.run_id)}/export.xlsx`;
+      } else {
+        if (csvA)  csvA.removeAttribute("href");
+        if (xlsxA) xlsxA.removeAttribute("href");
+      }
     } catch (e) {
       set("ld-name", `Failed to load: ${e.message}`);
     }
