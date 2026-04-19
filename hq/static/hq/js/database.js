@@ -273,4 +273,80 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && drawer && !drawer.hidden) drawerClose();
   });
+
+  /* ------- live pipe integration ----------------------------------------
+     live.js re-emits every incoming WebSocket frame as a DOM CustomEvent.
+     Here we use three of them:
+       hq:person  → prepend the new lead into its run's open tbody (if any)
+                    so operators watch the list grow as enrichment finishes
+       hq:done    → invalidate the cached run so the next expand hits the DB
+       hq:running → toggle a "live" decoration on the matching run row */
+  const findRunEl = (runId) => {
+    if (!runId) return null;
+    const short = String(runId).slice(0, 8);
+    return document.querySelector(`.db-run[data-run-id="${runId}"]`)
+        || document.querySelector(`.db-run[data-run-id="${short}"]`);
+  };
+
+  const leadKeyOf = (l) =>
+    `${(l.name || "").toLowerCase()}|${(l.company || "").toLowerCase()}|${(l.role || "").toLowerCase()}`;
+
+  window.addEventListener("hq:person", (ev) => {
+    const l = ev.detail || {};
+    if (!l.run_id) return;
+    const runEl = findRunEl(l.run_id);
+    if (!runEl) return;
+
+    runEl.classList.add("is-live");
+    const tbody = $("[data-db-leads]", runEl);
+    const ph = $("[data-db-placeholder]", runEl);
+    const countEl = $("[data-db-count]", runEl);
+
+    if (!runEl.dataset.loaded || !tbody) return;
+
+    // Dedup by (name|company|role) — enrichment can fire twice for the same lead.
+    const key = leadKeyOf(l);
+    const existing = $$(".db-lead-row", tbody).find((tr) => {
+      const n = (tr.children[2] && tr.children[2].textContent || "").toLowerCase();
+      const c = (tr.children[4] && tr.children[4].textContent || "").toLowerCase();
+      const r = (tr.children[3] && tr.children[3].textContent || "").toLowerCase();
+      return `${n}|${c}|${r}` === key;
+    });
+    if (existing) {
+      // Replace row in place with the freshest render (e.g. gained a score).
+      existing.outerHTML = leadRowHtml(Object.assign({ id: existing.dataset.leadId }, l));
+    } else {
+      const frag = document.createElement("tbody");
+      frag.innerHTML = leadRowHtml(Object.assign({ id: l.id || "live" }, l));
+      const tr = frag.firstElementChild;
+      tr.classList.add("db-lead-row--fresh");
+      tbody.insertBefore(tr, tbody.firstChild);
+      setTimeout(() => tr.classList.remove("db-lead-row--fresh"), 1600);
+      if (countEl) countEl.textContent = String($$(".db-lead-row", tbody).length);
+      if (ph) ph.hidden = true;
+    }
+
+    // Burn the cache so the next cold expand fetches the full DB row.
+    cache.delete(runEl.dataset.runId);
+  });
+
+  window.addEventListener("hq:running", (ev) => {
+    const running = !!(ev.detail && ev.detail.running);
+    if (!running) $$(".db-run.is-live").forEach((el) => el.classList.remove("is-live"));
+  });
+
+  window.addEventListener("hq:done", (ev) => {
+    const runId = ev.detail && ev.detail.run_id;
+    if (!runId) return;
+    const runEl = findRunEl(runId);
+    if (runEl) {
+      runEl.classList.remove("is-live");
+      cache.delete(runEl.dataset.runId);
+      // If it's currently expanded, refresh with the final server-of-truth.
+      if (runEl.classList.contains("is-open")) {
+        runEl.dataset.loaded = "";
+        loadRunLeads(runEl.dataset.runId, runEl);
+      }
+    }
+  });
 })();

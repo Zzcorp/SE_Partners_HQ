@@ -274,10 +274,10 @@ button { cursor: pointer; }
   border: 0;
   border-radius: 0;
   text-decoration: none;
+  /* layout is frozen — only color + glow + underline animate, never geometry */
   transition:
     color .32s var(--ease-out),
-    letter-spacing .42s var(--ease-out),
-    text-shadow .42s var(--ease-out);
+    text-shadow .45s var(--ease-out);
 }
 .navlink::before,
 .navlink::after { content: ""; position: absolute; pointer-events: none; }
@@ -330,7 +330,6 @@ button { cursor: pointer; }
 .navlink:hover,
 .navlink:focus-visible {
   color: var(--gold-3);
-  letter-spacing: 0.26em;
   text-shadow: 0 0 22px rgba(212,175,108,0.35);
   outline: none;
 }
@@ -6422,4 +6421,91 @@ body.drawer-open { overflow: hidden; }
   .login-stage { transition: none; }
   .login-step .lsd-n { transition: none; }
   .btn-step .bs-arrow { transition: none; }
+}
+
+/* ==========================================================================
+   Live pipe — global LIVE ribbon + KPI bump-glow
+   Appears on any authenticated page while a run is active; fades out when
+   the run settles. Cell-level glow pulses once on value change so operators
+   can see deltas streaming without a full repaint.
+   ========================================================================== */
+.live-ribbon {
+  position: fixed;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -110%);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 16px 7px 12px;
+  border: 1px solid rgba(212,175,108,0.35);
+  border-top: 0;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(180deg, rgba(10,11,16,0.92), rgba(10,11,16,0.76));
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.55), 0 0 18px rgba(212,175,108,0.15);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9000;
+  backdrop-filter: blur(8px);
+  transition: transform .5s var(--ease-out), opacity .45s var(--ease-out);
+}
+.live-ribbon.is-on {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.live-ribbon-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.3), 0 0 14px rgba(125,211,174,0.6);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.live-ribbon-label { color: var(--gold-3); letter-spacing: 0.16em; font-weight: 600; }
+.live-ribbon-run,
+.live-ribbon-stats { color: var(--ink-2); letter-spacing: 0.08em; }
+.live-ribbon-cta {
+  color: var(--gold-3);
+  text-decoration: none;
+  padding-left: 8px;
+  border-left: 1px solid rgba(212,175,108,0.2);
+  transition: color .25s var(--ease-out), text-shadow .25s var(--ease-out);
+}
+.live-ribbon-cta:hover { color: var(--ink-0); text-shadow: 0 0 18px rgba(212,175,108,0.45); }
+
+/* KPI / counter cell glow-on-change — no layout shift, just a halo pulse. */
+[data-live-kpi],
+[data-run-stat] { position: relative; transition: color .35s var(--ease-out), text-shadow .5s var(--ease-out); }
+[data-live-bump] {
+  color: var(--gold-3);
+  text-shadow: 0 0 22px rgba(212,175,108,0.55);
+  animation: live-bump .9s var(--ease-out) both;
+}
+@keyframes live-bump {
+  0%   { text-shadow: 0 0 0    rgba(212,175,108,0.0); }
+  22%  { text-shadow: 0 0 28px rgba(212,175,108,0.65); }
+  100% { text-shadow: 0 0 0    rgba(212,175,108,0.0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-ribbon { transition: opacity .2s linear; transform: translate(-50%, 0); }
+  [data-live-bump] { animation: none; }
+}
+
+/* Live-run row decoration + freshly inserted lead flash. */
+.db-run.is-live .db-run-row { box-shadow: inset 3px 0 0 0 var(--gold); }
+.db-run.is-live .db-run-duration { color: var(--gold-3); }
+.db-lead-row--fresh {
+  animation: db-lead-fresh 1.6s var(--ease-out) both;
+}
+@keyframes db-lead-fresh {
+  0%   { background: rgba(212,175,108,0.22); box-shadow: inset 0 0 0 1px rgba(212,175,108,0.35); }
+  60%  { background: rgba(212,175,108,0.10); }
+  100% { background: transparent; box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .db-lead-row--fresh { animation: none; }
 }

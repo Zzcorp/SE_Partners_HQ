@@ -21,25 +21,25 @@
   </div>
 </section>
 
-<section class="kpi-grid reveal">
+<section class="kpi-grid reveal" data-live-root>
   <div class="kpi-card">
     <div class="kpi-label mono">TOTAL LEADS</div>
-    <div class="kpi-value">{{ total_leads }}</div>
-    <div class="kpi-sub mono">+{{ leads_this_week }} this week</div>
+    <div class="kpi-value" data-live-kpi="total_leads" data-live-value="{{ total_leads }}">{{ total_leads }}</div>
+    <div class="kpi-sub mono">+<span data-live-kpi="leads_this_week" data-live-value="{{ leads_this_week }}">{{ leads_this_week }}</span> this week</div>
   </div>
   <div class="kpi-card">
     <div class="kpi-label mono">HIGH-VALUE</div>
-    <div class="kpi-value accent">{{ high_value }}</div>
+    <div class="kpi-value accent" data-live-kpi="high_value" data-live-value="{{ high_value }}">{{ high_value }}</div>
     <div class="kpi-sub mono">LLM score ≥ 80</div>
   </div>
   <div class="kpi-card">
     <div class="kpi-label mono">AVG LLM SCORE</div>
-    <div class="kpi-value">{{ avg_llm }}</div>
+    <div class="kpi-value" data-live-kpi="avg_llm" data-live-value="{{ avg_llm }}">{{ avg_llm }}</div>
     <div class="kpi-sub mono">across scored leads</div>
   </div>
   <div class="kpi-card">
     <div class="kpi-label mono">RUNS</div>
-    <div class="kpi-value">{{ total_runs }}</div>
+    <div class="kpi-value" data-live-kpi="total_runs" data-live-value="{{ total_runs }}">{{ total_runs }}</div>
     <div class="kpi-sub mono">{% if last_run %}last · {{ last_run.started_at|date:"M d, H:i" }}{% else %}none yet{% endif %}</div>
   </div>
 </section>

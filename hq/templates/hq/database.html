@@ -20,13 +20,13 @@
     </div>
   </div>
 
-  <div class="db-totals mono">
-    <div class="db-total"><span class="db-total-k">runs</span><b>{{ totals.runs }}</b></div>
-    <div class="db-total"><span class="db-total-k">leads</span><b>{{ totals.leads }}</b></div>
-    <div class="db-total"><span class="db-total-k">countries</span><b>{{ totals.countries }}</b></div>
-    <div class="db-total"><span class="db-total-k">high-value</span><b>{{ totals.high_value }}</b></div>
-    <div class="db-total"><span class="db-total-k">with email</span><b>{{ totals.with_email }}</b></div>
-    <div class="db-total"><span class="db-total-k">avg LLM</span><b>{{ totals.avg_llm }}</b></div>
+  <div class="db-totals mono" data-live-root>
+    <div class="db-total"><span class="db-total-k">runs</span><b data-live-kpi="total_runs" data-live-value="{{ totals.runs }}">{{ totals.runs }}</b></div>
+    <div class="db-total"><span class="db-total-k">leads</span><b data-live-kpi="total_leads" data-live-value="{{ totals.leads }}">{{ totals.leads }}</b></div>
+    <div class="db-total"><span class="db-total-k">countries</span><b data-live-kpi="countries" data-live-value="{{ totals.countries }}">{{ totals.countries }}</b></div>
+    <div class="db-total"><span class="db-total-k">high-value</span><b data-live-kpi="high_value" data-live-value="{{ totals.high_value }}">{{ totals.high_value }}</b></div>
+    <div class="db-total"><span class="db-total-k">with email</span><b data-live-kpi="with_email" data-live-value="{{ totals.with_email }}">{{ totals.with_email }}</b></div>
+    <div class="db-total"><span class="db-total-k">avg LLM</span><b data-live-kpi="avg_llm" data-live-value="{{ totals.avg_llm }}">{{ totals.avg_llm }}</b></div>
   </div>
 </section>
 
@@ -71,9 +71,9 @@
         {% endif %}
       </span>
       <span class="db-run-stats">
-        <span class="db-stat"><b>{{ r.queries_total }}</b> q</span>
-        <span class="db-stat"><b>{{ r.people_unique }}</b> ppl</span>
-        <span class="db-stat"><b>{{ r.leads_final }}</b> leads</span>
+        <span class="db-stat"><b data-run-stat="queries_total">{{ r.queries_total }}</b> q</span>
+        <span class="db-stat"><b data-run-stat="people_unique">{{ r.people_unique }}</b> ppl</span>
+        <span class="db-stat"><b data-run-stat="leads_final">{{ r.leads_final }}</b> leads</span>
       </span>
       <span class="db-run-badges mono">
         {% if r.bdg_with_email %}<span class="db-bdg db-bdg-email">✉ {{ r.bdg_with_email }}</span>{% endif %}
